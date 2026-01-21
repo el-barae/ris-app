@@ -2,20 +2,25 @@ package com.application.security;
 
 import static com.vaadin.flow.spring.security.VaadinSecurityConfigurer.vaadin;
 
-import com.application.views.login.LoginView;
-import com.vaadin.flow.spring.security.VaadinAwareSecurityContextHolderStrategyConfiguration;
+import com.application.views.LoginView;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.core.Authentication;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @Configuration
-@Import(VaadinAwareSecurityContextHolderStrategyConfiguration.class)
 public class SecurityConfiguration {
 
     @Bean
@@ -24,18 +29,12 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public SecurityFilterChain vaadinSecurityFilterChain(HttpSecurity http) throws Exception {
-
-        http.authorizeHttpRequests(authorize -> authorize.requestMatchers("/images/*.png", "/*.css").permitAll());
-
-        // Icons from the line-awesome addon
-        http.authorizeHttpRequests(authorize -> authorize.requestMatchers("/line-awesome/**").permitAll());
-
-        http.with(vaadin(), vaadin -> {
-            vaadin.loginView(LoginView.class);
-        });
-
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http.with(vaadin(), vaadin -> vaadin
+                .loginView(LoginView.class)
+                .defaultSuccessUrl("/dashboard")
+        );
+        
         return http.build();
     }
-
 }

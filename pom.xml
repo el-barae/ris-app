@@ -36,6 +36,14 @@
                 <enabled>false</enabled>
             </snapshots>
         </repository>
+        <!-- DCM4CHE repository -->
+        <repository>
+            <id>dcm4che</id>
+            <url>https://www.dcm4che.org/maven2</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
     </repositories>
 
     <pluginRepositories>
@@ -64,7 +72,7 @@
         <dependency>
             <groupId>com.vaadin</groupId>
             <!-- Replace artifactId with vaadin-core to use only free components -->
-            <artifactId>vaadin</artifactId>
+            <artifactId>vaadin-core</artifactId>
         </dependency>
         <dependency>
             <groupId>com.vaadin</groupId>
@@ -97,6 +105,11 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>com.vaadin</groupId>
             <artifactId>vaadin-dev</artifactId>
             <optional>true</optional>
@@ -119,6 +132,56 @@
             their transitive dependencies may conflict with those from regular 
             optional dependencies if not explicitly marked as optional here. -->
             <optional>true</optional>
+        </dependency>
+
+        <!-- DCM4CHE dependencies for DICOM MWL server -->
+        <dependency>
+            <groupId>org.dcm4che</groupId>
+            <artifactId>dcm4che-core</artifactId>
+            <version>5.31.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.dcm4che</groupId>
+            <artifactId>dcm4che-net</artifactId>
+            <version>5.31.0</version>
+        </dependency>
+        <!-- dcm4che-tool-dcmqrscp optionnel pour SCP - temporairement désactivé -->
+        <!-- 
+        <dependency>
+            <groupId>org.dcm4che</groupId>
+            <artifactId>dcm4che-tool-dcmqrscp</artifactId>
+            <version>5.30.3</version>
+        </dependency>
+        -->
+
+        <!-- Logging dependencies -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.17</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.5.22</version>
+        </dependency>
+
+        <!-- WebSocket for real-time notifications -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>sockjs-client</artifactId>
+            <version>1.5.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>stomp-websocket</artifactId>
+            <version>2.3.4</version>
         </dependency>
     </dependencies>
 

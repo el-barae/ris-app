@@ -1,0 +1,75 @@
+/* Styles pour les notifications globales */
+
+/* Notification globale principale */
+.global-notification {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    font-weight: 500 !important;
+    padding: 12px 24px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    border: none !important;
+}
+
+/* Notification de rafraîchissement */
+.refresh-notification {
+    background: rgba(76, 175, 80, 0.9) !important;
+    color: white !important;
+    font-weight: 500 !important;
+    padding: 12px 24px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    border: none !important;
+}
+
+/* Notification de statut global */
+.global-status-notification {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    font-weight: 500 !important;
+    padding: 12px 24px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    border: none !important;
+}
+
+/* Variations de durée pour les animations */
+.notification-duration-3000 {
+    animation: fadeInOut 3s ease-in-out;
+}
+
+.notification-duration-4000 {
+    animation: fadeInOut 4s ease-in-out;
+}
+
+.notification-duration-5000 {
+    animation: fadeInOut 5s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    10% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    90% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+/* Support pour les thèmes Vaadin */
+.global-notification[theme~="info"],
+.refresh-notification[theme~="success"],
+.global-status-notification[theme~="info"] {
+    /* Override des styles par défaut de Vaadin */
+    background: var(--notification-background, linear-gradient(135deg, #667eea 0%, #764ba2 100%)) !important;
+    color: var(--notification-color, white) !important;
+}

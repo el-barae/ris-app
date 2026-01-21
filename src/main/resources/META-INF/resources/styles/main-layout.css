@@ -1,0 +1,125 @@
+/* Styles pour le layout principal */
+
+/* Cartes statistiques */
+.stat-card {
+    background-color: white;
+    border: 1px solid var(--lumo-contrast-20pct);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+    margin: 8px 0;
+    transition: transform 0.2s ease-in-out;
+}
+
+.stat-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Badges */
+.badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge-planned {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.badge-in-progress {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.badge-completed {
+    background-color: #e8f5e8;
+    color: #388e3c;
+}
+
+.badge-cancelled {
+    background-color: #ffebee;
+    color: #d32f2f;
+}
+
+/* Badges de priorité */
+.badge-normal {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.badge-urgent {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.badge-critical {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Dialogs */
+.dialog-header {
+    background-color: var(--lumo-primary-color);
+    color: var(--lumo-primary-contrast-color);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--lumo-primary-color-20pct);
+}
+
+.dialog-content {
+    padding: 24px;
+}
+
+.dialog-footer {
+    border-top: 1px solid var(--lumo-contrast-20pct);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Formulaire de login */
+.login-form {
+    background-color: white;
+    border: 1px solid var(--lumo-contrast-20pct);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.login-form .text-center {
+    text-align: center;
+}
+
+.login-form .mt-1, .mt-2, .mt-3 {
+    margin-top: 16px;
+}
+
+.login-form .mb-1, .mb-2, .mb-3 {
+    margin-bottom: 16px;
+}
+
+/* Centrage et espacement */
+.text-center {
+    text-align: center;
+}
+
+.mt-1, .mt-2, .mt-3 {
+    margin-top: 16px;
+}
+
+.mb-1, .mb-2, .mb-3 {
+    margin-bottom: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .stat-card {
+        margin: 4px;
+    }
+}

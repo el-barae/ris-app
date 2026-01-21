@@ -1,0 +1,12 @@
+{
+  "lumoImports": [
+    "typography",
+    "color",
+    "spacing",
+    "badge",
+    "utility"
+  ],
+  "documentCssImport": [
+    "@vaadin/vaadin-lumo-styles/presets/compact.css"
+  ]
+}

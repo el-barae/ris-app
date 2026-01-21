@@ -1,0 +1,161 @@
+/* Padding responsive pour toutes les vues */
+
+/* Styles globaux pour les vues */
+vaadin-vertical-layout[class*="-view"] {
+  padding: var(--lumo-space-m);
+}
+
+/* Padding responsive pour mobile */
+@media (max-width: 768px) {
+  vaadin-vertical-layout[class*="-view"] {
+    padding: var(--lumo-space-s);
+  }
+}
+
+/* Padding responsive pour desktop */
+@media (min-width: 1024px) {
+  vaadin-vertical-layout[class*="-view"] {
+    padding: var(--lumo-space-l);
+  }
+}
+
+/* Padding pour les écrans larges */
+@media (min-width: 1440px) {
+  vaadin-vertical-layout[class*="-view"] {
+    padding: var(--lumo-space-xl);
+  }
+}
+
+/* Styles spécifiques pour les vues principales */
+.exam-view,
+.patient-view,
+.report-view,
+.mwl-view,
+.settings-view,
+.dashboard-view {
+  padding: var(--lumo-space-m);
+}
+
+/* Responsive pour les grilles */
+vaadin-grid {
+  margin: var(--lumo-space-s) 0;
+}
+
+/* Responsive pour les formulaires */
+vaadin-form-layout {
+  padding: var(--lumo-space-m);
+  border-radius: var(--lumo-border-radius-m);
+  background-color: var(--lumo-contrast-5pct);
+}
+
+/* Responsive pour les dialogues */
+vaadin-dialog-overlay::part(dialog) {
+  padding: var(--lumo-space-m);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .exam-view,
+  .patient-view,
+  .report-view,
+  .mwl-view,
+  .settings-view,
+  .dashboard-view {
+    padding: var(--lumo-space-s);
+  }
+  
+  vaadin-form-layout {
+    padding: var(--lumo-space-s);
+  }
+  
+  vaadin-grid {
+    margin: var(--lumo-space-xs) 0;
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 1024px) {
+  .exam-view,
+  .patient-view,
+  .report-view,
+  .mwl-view,
+  .settings-view,
+  .dashboard-view {
+    padding: var(--lumo-space-l);
+  }
+  
+  vaadin-form-layout {
+    padding: var(--lumo-space-l);
+  }
+  
+  vaadin-grid {
+    margin: var(--lumo-space-m) 0;
+  }
+}
+
+/* Large screen adjustments */
+@media (min-width: 1440px) {
+  .exam-view,
+  .patient-view,
+  .report-view,
+  .mwl-view,
+  .settings-view,
+  .dashboard-view {
+    padding: var(--lumo-space-xl);
+  }
+  
+  vaadin-form-layout {
+    padding: var(--lumo-space-xl);
+  }
+  
+  vaadin-grid {
+    margin: var(--lumo-space-l) 0;
+  }
+}
+
+/* Header spacing */
+.view-header {
+  margin-bottom: var(--lumo-space-m);
+  padding: var(--lumo-space-m);
+  background-color: var(--lumo-contrast-5pct);
+  border-radius: var(--lumo-border-radius-m);
+}
+
+@media (max-width: 768px) {
+  .view-header {
+    margin-bottom: var(--lumo-space-s);
+    padding: var(--lumo-space-s);
+  }
+}
+
+@media (min-width: 1024px) {
+  .view-header {
+    margin-bottom: var(--lumo-space-l);
+    padding: var(--lumo-space-l);
+  }
+}
+
+/* Content container */
+.content-container {
+  padding: var(--lumo-space-m);
+  border-radius: var(--lumo-border-radius-m);
+  background-color: var(--lumo-base-color);
+}
+
+@media (max-width: 768px) {
+  .content-container {
+    padding: var(--lumo-space-s);
+  }
+}
+
+@media (min-width: 1024px) {
+  .content-container {
+    padding: var(--lumo-space-l);
+  }
+}
+
+@media (min-width: 1440px) {
+  .content-container {
+    padding: var(--lumo-space-xl);
+  }
+}
