@@ -135,7 +135,7 @@ public class SettingsView extends VerticalLayout {
 
         // Grid
         loadUsers();
-        userGrid.setSizeFull();
+        // userGrid.setSizeFull(); // Removed to use specific height
 
         content.add(headerLayout, userGrid);
         content.setFlexGrow(1, userGrid);
@@ -268,6 +268,7 @@ public class SettingsView extends VerticalLayout {
     private Grid<User> createUserGrid() {
         Grid<User> grid = new Grid<>();
         grid.addClassNames("border-radius-m", "striped-rows");
+        grid.setHeight("600px"); // Increased height for better visibility
 
         // Columns
         grid.addColumn(User::getUsername)

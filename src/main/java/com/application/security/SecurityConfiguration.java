@@ -30,11 +30,21 @@ public class SecurityConfiguration {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // Autoriser l'accès au WebSocket AVANT la configuration Vaadin
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/ws-exam-status/**").permitAll()
+        );
+
+        // Désactiver CSRF pour le WebSocket
+        http.csrf(csrf -> csrf
+                .ignoringRequestMatchers("/ws-exam-status/**")
+        );
+
         http.with(vaadin(), vaadin -> vaadin
                 .loginView(LoginView.class)
                 .defaultSuccessUrl("/dashboard")
         );
-        
+
         return http.build();
     }
 }

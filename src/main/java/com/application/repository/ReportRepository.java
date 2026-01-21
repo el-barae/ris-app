@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface ReportRepository extends JpaRepository<Report, Long> {
 
-    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report")
+    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH r.radiologue")
     List<Report> findAllWithRelations();
     
     @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report WHERE r.id = :id")

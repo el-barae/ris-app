@@ -46,6 +46,7 @@ public class ReportView extends VerticalLayout {
 
     // UI Components
     private final Grid<Exam> grid = new Grid<>(Exam.class);
+    private final Grid<Report> reportsGrid = new Grid<>(Report.class);
     private final TextArea findingsField = new TextArea("Observations détaillées");
     private final TextArea conclusionField = new TextArea("Conclusion");
     private final Button saveButton = new Button("Valider le Rapport");
@@ -75,16 +76,22 @@ public class ReportView extends VerticalLayout {
         // 3. Configuration de la Grille
         configureGrid();
 
-        // 4. Zone d'édition
+        // 4. Configuration de la Grille des rapports
+        configureReportsGrid();
+
+        // 5. Zone d'édition
         VerticalLayout editorLayout = createEditorLayout();
 
-        // 5. Mise en page
+        // 6. Mise en page
         SplitLayout splitLayout = new SplitLayout(grid, editorLayout);
         splitLayout.setWidthFull();
         splitLayout.setHeight("calc(100vh - 200px)");
         splitLayout.setSplitterPosition(45);
 
         add(splitLayout);
+
+        // 7. Tableau des rapports validés
+        add(createReportsSection());
 
         // Charger les données
         refreshGrid();
@@ -488,6 +495,7 @@ public class ReportView extends VerticalLayout {
         notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
         refreshGrid();
+        refreshReportsGrid(); // Refresh reports table after saving
     }
 
     private void openOhifViewer() {
@@ -606,5 +614,200 @@ public class ReportView extends VerticalLayout {
         allExams = exams;
         grid.setItems(exams);
         updateExamCount();
+    }
+
+    private void configureReportsGrid() {
+        reportsGrid.setSizeFull();
+        reportsGrid.setHeight("400px");
+        reportsGrid.removeAllColumns();
+        reportsGrid.addClassName("reports-grid");
+        reportsGrid.getStyle()
+                .set("border-radius", "12px")
+                .set("overflow", "hidden");
+
+        // Colonne Patient
+        reportsGrid.addColumn(report -> {
+            if (report.getExam() != null && report.getExam().getPatient() != null) {
+                return report.getExam().getPatient().getFirstName() + " " + 
+                       report.getExam().getPatient().getLastName();
+            }
+            return "N/A";
+        }).setHeader("Patient").setSortable(true).setFlexGrow(1);
+
+        // Colonne Accession
+        reportsGrid.addColumn(report -> {
+            if (report.getExam() != null) {
+                return report.getExam().getAccessionNumber();
+            }
+            return "N/A";
+        }).setHeader("N° Accession").setSortable(true).setWidth("150px");
+
+        // Colonne Modalité
+        reportsGrid.addColumn(report -> {
+            if (report.getExam() != null) {
+                return report.getExam().getModality();
+            }
+            return "N/A";
+        }).setHeader("Modalité").setWidth("100px");
+
+        // Colonne Radiologue
+        reportsGrid.addColumn(report -> {
+            if (report.getRadiologue() != null) {
+                return "Dr. " + report.getRadiologue().getLastName();
+            }
+            return "N/A";
+        }).setHeader("Radiologue").setWidth("150px");
+
+        // Colonne Date de validation
+        reportsGrid.addColumn(report -> {
+            if (report.getValidatedAt() != null) {
+                return report.getValidatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+            }
+            return "N/A";
+        }).setHeader("Date validation").setWidth("150px");
+
+        // Colonne Statut
+        reportsGrid.addColumn(new ComponentRenderer<>(report -> {
+            Span badge = new Span(report.getValidated() ? "Validé" : "Brouillon");
+            badge.getStyle()
+                    .set("padding", "0.25rem 0.75rem")
+                    .set("border-radius", "1rem")
+                    .set("font-size", "12px")
+                    .set("font-weight", "600");
+
+            if (report.getValidated()) {
+                badge.getStyle()
+                        .set("background-color", "#10b981")
+                        .set("color", "white");
+            } else {
+                badge.getStyle()
+                        .set("background-color", "#f59e0b")
+                        .set("color", "white");
+            }
+
+            return badge;
+        })).setHeader("Statut").setWidth("100px");
+
+        // Colonne Actions
+        reportsGrid.addColumn(new ComponentRenderer<>(report -> {
+            HorizontalLayout actions = new HorizontalLayout();
+            actions.setSpacing(false);
+
+            // Voir le rapport
+            Button viewBtn = new Button(VaadinIcon.EYE.create());
+            viewBtn.addClassNames("small", "icon-button", "tertiary");
+            viewBtn.getElement().setProperty("title", "Voir le rapport");
+            viewBtn.addClickListener(e -> openReportDialog(report));
+
+            // Télécharger
+            Button downloadBtn = new Button(VaadinIcon.DOWNLOAD.create());
+            downloadBtn.addClassNames("small", "icon-button", "secondary");
+            downloadBtn.getElement().setProperty("title", "Télécharger");
+            downloadBtn.addClickListener(e -> downloadReport(report));
+
+            actions.add(viewBtn, downloadBtn);
+            return actions;
+        })).setHeader("Actions").setWidth("120px");
+    }
+
+    private Component createReportsSection() {
+        VerticalLayout section = new VerticalLayout();
+        section.setWidthFull();
+        section.setPadding(true);
+        section.setSpacing(true);
+        section.getStyle()
+                .set("background-color", "#f8fafc")
+                .set("border-top", "2px solid #e2e8f0")
+                .set("margin-top", "1rem");
+
+        // En-tête de la section
+        HorizontalLayout header = new HorizontalLayout();
+        header.setWidthFull();
+        header.setAlignItems(Alignment.CENTER);
+        header.setJustifyContentMode(com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode.BETWEEN);
+
+        H3 title = new H3("Rapports validés");
+        title.getStyle()
+                .set("margin", "0")
+                .set("color", "#1e293b")
+                .set("font-weight", "600");
+
+        Button refreshReportsBtn = new Button("Actualiser", VaadinIcon.REFRESH.create());
+        refreshReportsBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
+        refreshReportsBtn.addClickListener(e -> refreshReportsGrid());
+
+        header.add(title, refreshReportsBtn);
+
+        // Charger et afficher les rapports
+        refreshReportsGrid();
+
+        section.add(header, reportsGrid);
+        section.setFlexGrow(1, reportsGrid);
+
+        return section;
+    }
+
+    private void refreshReportsGrid() {
+        try {
+            List<Report> reports = reportRepository.findAllWithRelations();
+            reportsGrid.setItems(reports);
+        } catch (Exception e) {
+            Notification.show("Erreur lors du chargement des rapports: " + e.getMessage());
+        }
+    }
+
+    private void openReportDialog(Report report) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Détails du rapport");
+        dialog.setWidth("800px");
+        dialog.setHeight("600px");
+
+        VerticalLayout content = new VerticalLayout();
+        content.setSpacing(true);
+        content.setPadding(true);
+        content.setSizeFull();
+
+        // Informations de l'examen
+        if (report.getExam() != null) {
+            HorizontalLayout examInfo = new HorizontalLayout();
+            examInfo.setWidthFull();
+            examInfo.setSpacing(true);
+
+            Span accession = new Span("N° Accession: " + report.getExam().getAccessionNumber());
+            Span patient = new Span("Patient: " + 
+                (report.getExam().getPatient() != null ? 
+                 report.getExam().getPatient().getFirstName() + " " + report.getExam().getPatient().getLastName() : "N/A"));
+            Span modality = new Span("Modalité: " + report.getExam().getModality());
+
+            examInfo.add(accession, patient, modality);
+            content.add(examInfo);
+        }
+
+        // Observations
+        TextArea findingsDisplay = new TextArea("Observations");
+        findingsDisplay.setValue(report.getFindings() != null ? report.getFindings() : "");
+        findingsDisplay.setReadOnly(true);
+        findingsDisplay.setWidthFull();
+        findingsDisplay.setHeight("200px");
+
+        // Conclusion
+        TextArea conclusionDisplay = new TextArea("Conclusion");
+        conclusionDisplay.setValue(report.getConclusion() != null ? report.getConclusion() : "");
+        conclusionDisplay.setReadOnly(true);
+        conclusionDisplay.setWidthFull();
+        conclusionDisplay.setHeight("100px");
+
+        content.add(findingsDisplay, conclusionDisplay);
+
+        Button closeBtn = new Button("Fermer", e -> dialog.close());
+        content.add(closeBtn);
+
+        dialog.add(content);
+        dialog.open();
+    }
+
+    private void downloadReport(Report report) {
+        // TODO: Implement PDF download functionality
+        Notification.show("Téléchargement PDF à implémenter", 3000, Notification.Position.BOTTOM_END);
     }
 }

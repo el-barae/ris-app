@@ -25,6 +25,8 @@ import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.spring.annotation.UIScope;
 import org.springframework.stereotype.Component;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.server.VaadinSession;
+import com.vaadin.flow.component.ClientCallable;
 
 @Component
 @UIScope
@@ -38,19 +40,109 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         setupWebSocketListener();
     }
 
+//    private void setupWebSocketListener() {
+//        getElement().executeJs(
+//                "function loadScript(src) {" +
+//                        "  return new Promise((resolve, reject) => {" +
+//                        "    if (document.querySelector('script[src=\"' + src + '\"]')) {" +
+//                        "      console.log('✅ Script déjà chargé:', src);" +
+//                        "      resolve();" +
+//                        "      return;" +
+//                        "    }" +
+//                        "    const script = document.createElement('script');" +
+//                        "    script.src = src;" +
+//                        "    script.onload = () => {" +
+//                        "      console.log('✅ Script chargé:', src);" +
+//                        "      resolve();" +
+//                        "    };" +
+//                        "    script.onerror = (err) => {" +
+//                        "      console.error('❌ Erreur chargement script:', src, err);" +
+//                        "      reject(err);" +
+//                        "    };" +
+//                        "    document.head.appendChild(script);" +
+//                        "  });" +
+//                        "}" +
+//                        "" +
+//                        "function waitForGlobal(globalName, timeout = 5000) {" +
+//                        "  return new Promise((resolve, reject) => {" +
+//                        "    const startTime = Date.now();" +
+//                        "    const checkInterval = setInterval(() => {" +
+//                        "      if (typeof window[globalName] !== 'undefined') {" +
+//                        "        console.log('✅ ' + globalName + ' disponible');" +
+//                        "        clearInterval(checkInterval);" +
+//                        "        resolve();" +
+//                        "      } else if (Date.now() - startTime > timeout) {" +
+//                        "        clearInterval(checkInterval);" +
+//                        "        reject(new Error(globalName + ' non disponible après ' + timeout + 'ms'));" +
+//                        "      }" +
+//                        "    }, 50);" +
+//                        "  });" +
+//                        "}" +
+//                        "" +
+//                        "loadScript('https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js')" +
+//                        ".then(() => waitForGlobal('SockJS'))" +
+//                        ".then(() => loadScript('https://cdn.jsdelivr.net/npm/@stomp/stompjs@5/bundles/stomp.umd.min.js'))" +
+//                        ".then(() => waitForGlobal('StompJs'))" +
+//                        ".then(() => {" +
+//                        "  console.log('📚 Librairies WebSocket chargées');" +
+//                        "  " +
+//                        "  const socket = new SockJS('/ws-exam-status');" +
+//                        "  const stompClient = StompJs.Stomp.over(socket);" +
+//                        "  " +
+//                        "  stompClient.connect({}, function(frame) {" +
+//                        "    console.log('✅ WebSocket connecté:', frame);" +
+//                        "    " +
+//                        "    stompClient.subscribe('/topic/exam-status', function(message) {" +
+//                        "      try {" +
+//                        "        const data = JSON.parse(message.body);" +
+//                        "        console.log('📨 Message MPPS reçu:', data);" +
+//                        "        " +
+//                        "        $0.$server.showStatusDialog(" +
+//                        "          data.accessionNumber," +
+//                        "          data.patientName," +
+//                        "          data.examType," +
+//                        "          data.newStatus," +
+//                        "          data.message" +
+//                        "        );" +
+//                        "      } catch (error) {" +
+//                        "        console.error('❌ Erreur traitement message:', error);" +
+//                        "      }" +
+//                        "    });" +
+//                        "  }, function(error) {" +
+//                        "    console.error('❌ Erreur connexion WebSocket:', error);" +
+//                        "  });" +
+//                        "  " +
+//                        "  window._stompClient = stompClient;" +
+//                        "  " +
+//                        "  window.addEventListener('beforeunload', function() {" +
+//                        "    if (window._stompClient && window._stompClient.connected) {" +
+//                        "      console.log('🔌 Déconnexion WebSocket');" +
+//                        "      window._stompClient.disconnect();" +
+//                        "    }" +
+//                        "  });" +
+//                        "})" +
+//                        ".catch(error => {" +
+//                        "  console.error('❌ Erreur chargement librairies WebSocket:', error);" +
+//                        "});"
+//        );
+//    }
+
     private void setupWebSocketListener() {
-        UI.getCurrent().getPage().executeJs(
-                "function loadScript(src) {" +
+        getElement().executeJs(
+                "console.log('🚀 Initialisation WebSocket...');" +
+                        "" +
+                        "function loadScript(src) {" +
                         "  return new Promise((resolve, reject) => {" +
                         "    if (document.querySelector('script[src=\"' + src + '\"]')) {" +
-                        "      resolve();" +
+                        "      console.log('✅ Script déjà présent:', src);" +
+                        "      setTimeout(resolve, 50);" +
                         "      return;" +
                         "    }" +
                         "    const script = document.createElement('script');" +
                         "    script.src = src;" +
                         "    script.onload = () => {" +
-                        "      console.log('✅ Chargé:', src);" +
-                        "      resolve();" +
+                        "      console.log('✅ Script chargé:', src);" +
+                        "      setTimeout(resolve, 100);" +
                         "    };" +
                         "    script.onerror = (err) => {" +
                         "      console.error('❌ Erreur chargement:', src, err);" +
@@ -60,46 +152,83 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
                         "  });" +
                         "}" +
                         "" +
-                        "Promise.all([" +
-                        "  loadScript('https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js')," +
-                        "  loadScript('https://cdn.jsdelivr.net/npm/@stomp/stompjs@5/bundles/stomp.umd.min.js')" +
-                        "]).then(() => {" +
-                        "  console.log('📚 Librairies WebSocket chargées');" +
-                        "  const socket = new SockJS('/ws-exam-status');" +
-                        "  const stompClient = Stomp.over(socket);" +
-                        "  " +
-                        "  stompClient.connect({}, function(frame) {" +
-                        "    console.log('✅ WebSocket connecté:', frame);" +
+                        "loadScript('https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js')" +
+                        "  .then(() => loadScript('https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js'))" +
+                        "  .then(() => {" +
+                        "    console.log('📚 Librairies chargées - Vérification...');" +
                         "    " +
-                        "    stompClient.subscribe('/topic/exam-status', function(message) {" +
-                        "      const data = JSON.parse(message.body);" +
-                        "      console.log('📨 Message MPPS reçu:', data);" +
-                        "      " +
-                        "      $0.$server.showStatusDialog(" +
-                        "        data.accessionNumber," +
-                        "        data.patientName," +
-                        "        data.examType," +
-                        "        data.newStatus," +
-                        "        data.message" +
-                        "      );" +
-                        "    });" +
-                        "  }, function(error) {" +
-                        "    console.error('❌ Erreur connexion WebSocket:', error);" +
-                        "  });" +
-                        "  " +
-                        "  window.addEventListener('beforeunload', function() {" +
-                        "    if (stompClient && stompClient.connected) {" +
-                        "      console.log('🔌 Déconnexion WebSocket');" +
-                        "      stompClient.disconnect();" +
+                        "    if (typeof SockJS === 'undefined') {" +
+                        "      throw new Error('SockJS non disponible');" +
                         "    }" +
-                        "  });" +
-                        "}).catch(error => {" +
-                        "  console.error('❌ Erreur chargement librairies WebSocket:', error);" +
-                        "});",
-                getElement()
+                        "    if (typeof Stomp === 'undefined') {" +
+                        "      throw new Error('Stomp non disponible');" +
+                        "    }" +
+                        "    " +
+                        "    console.log('✅ SockJS et Stomp disponibles');" +
+                        "    console.log('🔌 Connexion au WebSocket...');" +
+                        "    " +
+                        "    const socket = new SockJS('/ws-exam-status');" +
+                        "    const stompClient = Stomp.over(socket);" +
+                        "    " +
+                        "    stompClient.debug = function(str) {" +
+                        "      console.log('📝 STOMP:', str);" +
+                        "    };" +
+                        "    " +
+                        "    stompClient.connect({}, function(frame) {" +
+                        "      console.log('✅ WebSocket connecté!', frame);" +
+                        "      console.log('👂 Abonnement à /topic/exam-status...');" +
+                        "      " +
+                        "      const subscription = stompClient.subscribe('/topic/exam-status', function(message) {" +
+                        "        console.log('📨 Message WebSocket reçu!');" +
+                        "        console.log('📦 Message brut:', message);" +
+                        "        " +
+                        "        try {" +
+                        "          const data = JSON.parse(message.body);" +
+                        "          console.log('📊 Données parsées:', data);" +
+                        "          " +
+                        "          if (!$0 || !$0.$server) {" +
+                        "            console.error('❌ $0.$server non disponible');" +
+                        "            return;" +
+                        "          }" +
+                        "          " +
+                        "          console.log('📞 Appel showStatusDialog...');" +
+                        "          $0.$server.showStatusDialog(" +
+                        "            data.accessionNumber," +
+                        "            data.patientName," +
+                        "            data.examType," +
+                        "            data.newStatus," +
+                        "            data.message" +
+                        "          );" +
+                        "          console.log('✅ showStatusDialog appelé');" +
+                        "        } catch (error) {" +
+                        "          console.error('❌ Erreur traitement message:', error);" +
+                        "          console.error('Stack:', error.stack);" +
+                        "        }" +
+                        "      });" +
+                        "      " +
+                        "      console.log('✅ Abonnement actif:', subscription.id);" +
+                        "    }, function(error) {" +
+                        "      console.error('❌ Erreur connexion WebSocket:', error);" +
+                        "    });" +
+                        "    " +
+                        "    window._stompClient = stompClient;" +
+                        "    console.log('💾 Client STOMP stocké dans window._stompClient');" +
+                        "    " +
+                        "    window.addEventListener('beforeunload', function() {" +
+                        "      if (window._stompClient && window._stompClient.connected) {" +
+                        "        console.log('🔌 Déconnexion WebSocket');" +
+                        "        window._stompClient.disconnect();" +
+                        "      }" +
+                        "    });" +
+                        "  })" +
+                        "  .catch(error => {" +
+                        "    console.error('❌ Erreur fatale WebSocket:', error);" +
+                        "    console.error('Stack:', error.stack);" +
+                        "  });"
         );
     }
 
+    @ClientCallable
     public void showStatusDialog(String accessionNumber, String patientName,
                                  String examType, String newStatus, String message) {
         UI.getCurrent().access(() -> {
