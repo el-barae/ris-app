@@ -87,10 +87,35 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initializePatients() {
+        System.out.println("=== Initialisation des patients ===");
+        
+        // Clean up any existing Gender.OTHER values first
+        try {
+            int updatedCount = patientService.cleanupGenderOtherValues();
+            if (updatedCount > 0) {
+                System.out.println("=== Nettoyage de " + updatedCount + " patients avec Gender.OTHER vers MALE ===");
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur lors du nettoyage des Gender.OTHER: " + e.getMessage());
+        }
+        
         // Vérifier si les patients existent déjà
-        List<Patient> existingPatients = patientService.findAll();
-        if (existingPatients.size() >= 10) {
-            return;
+        try {
+            List<Patient> existingPatients = patientService.findAll();
+            if (existingPatients.size() >= 10) {
+                System.out.println("=== Les patients existent déjà ===");
+                return;
+            }
+        } catch (Exception e) {
+            // Handle case where existing patients have Gender.OTHER values
+            if (e.getMessage() != null && e.getMessage().contains("No enum constant com.application.entity.Gender.OTHER")) {
+                System.out.println("=== Nettoyage des patients avec Gender.OTHER ===");
+                // This will be handled by the database migration
+                // For now, we'll continue with initialization
+            } else {
+                System.err.println("Erreur lors de la vérification des patients: " + e.getMessage());
+                return;
+            }
         }
 
         String[] firstNames = {"Pierre", "Marie", "Jean", "Sophie", "Michel", "Isabelle", "Philippe", "Nathalie", "Alain", "Catherine"};

@@ -258,6 +258,7 @@ public class SettingsView extends VerticalLayout {
         // Grid with exam types
         loadExamTypes();
         examTypeGrid.setSizeFull();
+        examTypeGrid.setHeight("500px");
 
         content.add(title, examTypeGrid);
         content.setFlexGrow(1, examTypeGrid);

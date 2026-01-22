@@ -76,7 +76,7 @@ public class MppsScp extends BasicMPPSSCP {
                         statusMessage = "L'examen a été annulé";
                     }
 
-                    // 4. ENVOYER LE MESSAGE WEBSOCKET AVANT LA MISE À JOUR
+                    // 4. ENVOYER LE MESSAGE WEBSOCKET SEULEMENT UNE FOIS
                     if (newStatus != null) {
                         ExamStatusMessage wsMessage = new ExamStatusMessage(
                                 exam.getAccessionNumber(),
@@ -87,11 +87,12 @@ public class MppsScp extends BasicMPPSSCP {
                                 statusMessage
                         );
 
+                        // Utiliser UNIQUEMENT webSocketService
                         webSocketService.sendStatusUpdate(wsMessage);
-                        System.out.println("   Message WebSocket envoyé");
+                        System.out.println("   📡 Message WebSocket envoyé");
 
-                        // 5. Notifier le service métier
-                        notificationService.notifyExamStatusUpdate(exam, oldStatus, newStatus);
+                        // COMMENTEZ OU SUPPRIMEZ cette ligne
+                        // notificationService.notifyExamStatusUpdate(exam, oldStatus, newStatus);
 
                         // 6. Mettre à jour le statut dans la base
                         exam.setStatus(newStatus);

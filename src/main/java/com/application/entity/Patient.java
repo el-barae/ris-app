@@ -54,7 +54,6 @@ public class Patient {
     private String postalCode;
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @EqualsAndHashCode.Exclude
     private List<Exam> exams;
 
     @CreationTimestamp
@@ -64,13 +63,6 @@ public class Patient {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    public void generatePatientId() {
-        if (patientId == null || patientId.isEmpty()) {
-            patientId = "P" + String.format("%08d", (int)(Math.random() * 100000000));
-        }
-    }
 
     public String getFullName() {
         return firstName + " " + lastName;

@@ -23,4 +23,6 @@ public interface PatientService {
     String generatePatientId();
 
     List<Object[]> findDuplicatePatientIds();
+
+    int cleanupGenderOtherValues();
 }

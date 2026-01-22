@@ -48,11 +48,11 @@ public class PatientDialog extends Dialog {
         configureDialog();
         configureFields();
         configureBinder();
-        bindFields();
         
-        if (patient != null) {
-            binder.setBean(patient);
-        }
+        // Set the bean immediately after configuration
+        binder.setBean(this.patient);
+        
+        bindFields();
     }
     
     private void configureDialog() {
@@ -96,9 +96,9 @@ public class PatientDialog extends Dialog {
     
     private void configureFields() {
         // Configuration des champs
-        patientId.setPlaceholder("Ex: PAT001");
-        patientId.setRequired(true);
-        patientId.setRequiredIndicatorVisible(true);
+        patientId.setPlaceholder("Ex: PAT001 (laisser vide pour génération automatique)");
+        patientId.setRequired(false);
+        patientId.setRequiredIndicatorVisible(false);
         
         firstName.setPlaceholder("Ex: Jean");
         firstName.setRequired(true);
@@ -120,7 +120,6 @@ public class PatientDialog extends Dialog {
             switch (gender) {
                 case MALE: return "Homme";
                 case FEMALE: return "Femme";
-                case OTHER: return "Autre";
                 default: return gender.toString();
             }
         });
@@ -142,7 +141,7 @@ public class PatientDialog extends Dialog {
         binder.forField(patientId)
                 .withValidator(new StringLengthValidator(
                     "L'ID patient doit contenir entre 3 et 20 caractères", 3, 20))
-                .withValidator(id -> id != null && id.matches("^[A-Z0-9_]+$"), 
+                .withValidator(id -> id == null || id.trim().isEmpty() || id.matches("^[A-Z0-9_]+$"), 
                     "L'ID patient ne peut contenir que des lettres majuscules, chiffres et underscores")
                 .bind(Patient::getPatientId, Patient::setPatientId);
         
@@ -213,9 +212,19 @@ public class PatientDialog extends Dialog {
     private void savePatient() {
         if (binder.validate().isOk()) {
             Patient patientToSave = binder.getBean();
+            
+            // Generate patient ID if empty for new patients
+            if (patientToSave.getId() == null && (patientToSave.getPatientId() == null || patientToSave.getPatientId().trim().isEmpty())) {
+                patientToSave.setPatientId(generatePatientId());
+            }
+            
             saveCallback.accept(patientToSave);
             close();
         }
+    }
+    
+    private String generatePatientId() {
+        return "P" + String.format("%08d", (int)(Math.random() * 100000000));
     }
     
     /**

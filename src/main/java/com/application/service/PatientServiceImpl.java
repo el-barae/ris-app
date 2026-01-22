@@ -120,6 +120,12 @@ public class PatientServiceImpl implements PatientService {
         return patientRepository.findDuplicatePatientIds();
     }
 
+    @Override
+    @Transactional
+    public int cleanupGenderOtherValues() {
+        return patientRepository.updateGenderOtherToMale();
+    }
+
     private void validatePatientData(Patient patient) {
         // Validation du nom et prénom
         if (patient.getFirstName() == null || patient.getFirstName().trim().isEmpty()) {
