@@ -182,11 +182,11 @@ public class SettingsView extends VerticalLayout {
         mwlStatusLayout.add(mwlStatusBadge, restartMWLBtn);
         mwlSection.add(mwlTitle, mwlForm, mwlStatusLayout);
 
-        // Section 2 - Orthanc Modality
+        // Section 2 - Modality
         VerticalLayout modalitySection = new VerticalLayout();
         modalitySection.addClassNames("border-radius-m", "p-m", "mb-m", "bg-contrast-5pct");
         
-        H3 modalityTitle = new H3("Orthanc Modality");
+        H3 modalityTitle = new H3("Modality");
         modalityTitle.addClassNames("mb-s", "text-primary");
         
         FormLayout modalityForm = new FormLayout();
@@ -199,11 +199,11 @@ public class SettingsView extends VerticalLayout {
         
         modalitySection.add(modalityTitle, modalityForm, testModalityBtn);
 
-        // Section 3 - Orthanc PACS
+        // Section 3 - PACS
         VerticalLayout pacsSection = new VerticalLayout();
         pacsSection.addClassNames("border-radius-m", "p-m", "mb-m", "bg-contrast-5pct");
         
-        H3 pacsTitle = new H3("Orthanc PACS");
+        H3 pacsTitle = new H3("PACS");
         pacsTitle.addClassNames("mb-s", "text-primary");
         
         FormLayout pacsForm = new FormLayout();

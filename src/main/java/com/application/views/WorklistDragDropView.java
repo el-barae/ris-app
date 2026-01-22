@@ -89,39 +89,67 @@ public class WorklistDragDropView extends VerticalLayout {
         header.setSpacing(true);
         header.setAlignItems(Alignment.CENTER);
         header.getStyle()
-                .set("background", "linear-gradient(135deg, #667eea 0%, #764ba2 100%)")
+                .set("background", "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)")
                 .set("color", "white")
-                .set("box-shadow", "0 4px 6px rgba(0,0,0,0.1)");
+                .set("box-shadow", "0 4px 6px rgba(0,0,0,0.1)")
+                .set("border-radius", "0 0 16px 16px");
 
-        H2 title = new H2("🔀 Gestion Worklist DICOM");
+        // Icône et titre
+        HorizontalLayout titleLayout = new HorizontalLayout();
+        titleLayout.setAlignItems(Alignment.CENTER);
+        titleLayout.setSpacing(true);
+
+        Icon worklistIcon = VaadinIcon.LIST.create();
+        worklistIcon.setSize("32px");
+        worklistIcon.getStyle().set("color", "white");
+
+        H2 title = new H2("Worklist DICOM");
         title.getStyle()
                 .set("margin", "0")
-                .set("color", "white");
+                .set("color", "white")
+                .set("font-weight", "600");
+
+        titleLayout.add(worklistIcon, title);
 
         // Badge pour le nombre d'examens planifiés
-        plannedCount.addClassNames("badge", "text-s", "font-semibold", "p-xs", "bg-primary", "text-on-primary");
-        plannedCount.setText("0");
+        plannedCount.getStyle()
+                .set("background-color", "rgba(255,255,255,0.2)")
+                .set("color", "white")
+                .set("padding", "0.5rem 1rem")
+                .set("border-radius", "2rem")
+                .set("font-weight", "600")
+                .set("font-size", "14px");
 
         // Badge pour le nombre d'examens en cours
-        inProgressCount.addClassNames("badge", "text-s", "font-semibold", "p-xs", "bg-warning", "text-on-primary");
-        inProgressCount.setText("0");
+        inProgressCount.getStyle()
+                .set("background-color", "rgba(255,255,255,0.2)")
+                .set("color", "white")
+                .set("padding", "0.5rem 1rem")
+                .set("border-radius", "2rem")
+                .set("font-weight", "600")
+                .set("font-size", "14px");
 
-        // Bouton refresh
+        // Bouton actualiser
         Button refreshBtn = new Button("Actualiser", VaadinIcon.REFRESH.create());
         refreshBtn.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
-        refreshBtn.getStyle().set("background", "rgba(255,255,255,0.2)");
+        refreshBtn.getStyle()
+                .set("background", "rgba(255,255,255,0.2)")
+                .set("color", "white");
         refreshBtn.addClickListener(e -> {
             refreshGrids();
+            Notification.show("Liste actualisée", 2000, Notification.Position.BOTTOM_END);
         });
 
         // Bouton exporter MWL
         Button exportBtn = new Button("Exporter MWL", VaadinIcon.DOWNLOAD.create());
         exportBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        exportBtn.getStyle().set("background", "rgba(255,255,255,0.2)");
+        exportBtn.getStyle()
+                .set("background", "rgba(255,255,255,0.2)")
+                .set("color", "white");
         exportBtn.addClickListener(e -> exportMWL());
 
-        header.add(title, plannedCount, inProgressCount, refreshBtn, exportBtn);
-        header.setFlexGrow(1, title);
+        header.add(titleLayout, plannedCount, inProgressCount, refreshBtn, exportBtn);
+        header.setFlexGrow(1, titleLayout);
         header.setFlexGrow(0, plannedCount);
         header.setFlexGrow(0, inProgressCount);
 

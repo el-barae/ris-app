@@ -495,7 +495,7 @@ public class ReportView extends VerticalLayout {
         notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
         refreshGrid();
-        refreshReportsGrid(); // Refresh reports table after saving
+        refreshReportsGrid();
     }
 
     private void openOhifViewer() {
@@ -688,7 +688,7 @@ public class ReportView extends VerticalLayout {
             return badge;
         })).setHeader("Statut").setWidth("100px");
 
-        // Colonne Actions
+        // Colonne Actions avec modification et suppression
         reportsGrid.addColumn(new ComponentRenderer<>(report -> {
             HorizontalLayout actions = new HorizontalLayout();
             actions.setSpacing(false);
@@ -699,15 +699,117 @@ public class ReportView extends VerticalLayout {
             viewBtn.getElement().setProperty("title", "Voir le rapport");
             viewBtn.addClickListener(e -> openReportDialog(report));
 
-            // Télécharger
-            Button downloadBtn = new Button(VaadinIcon.DOWNLOAD.create());
-            downloadBtn.addClassNames("small", "icon-button", "secondary");
-            downloadBtn.getElement().setProperty("title", "Télécharger");
-            downloadBtn.addClickListener(e -> downloadReport(report));
+            // Modifier le rapport
+            Button editBtn = new Button(VaadinIcon.EDIT.create());
+            editBtn.addClassNames("small", "icon-button", "primary");
+            editBtn.getElement().setProperty("title", "Modifier le rapport");
+            editBtn.addClickListener(e -> editReport(report));
+            editBtn.setEnabled(canEditReport(report));
 
-            actions.add(viewBtn, downloadBtn);
+            // Supprimer le rapport
+            Button deleteBtn = new Button(VaadinIcon.TRASH.create());
+            deleteBtn.addClassNames("small", "icon-button", "error");
+            deleteBtn.getElement().setProperty("title", "Supprimer le rapport");
+            deleteBtn.addClickListener(e -> deleteReport(report));
+            deleteBtn.setEnabled(canDeleteReport(report));
+
+            actions.add(viewBtn, editBtn, deleteBtn);
             return actions;
-        })).setHeader("Actions").setWidth("120px");
+        })).setHeader("Actions").setWidth("180px");
+    }
+
+    private boolean canEditReport(Report report) {
+        if (currentUser == null) return false;
+
+        UserRole userRole = currentUser.getRole();
+
+        switch (userRole) {
+            case ADMIN:
+                return true;
+            case RADIOLOGUE:
+                return report.getRadiologue() != null && 
+                       report.getRadiologue().getId().equals(currentUser.getId());
+            case MEDECIN:
+                return report.getExam() != null && report.getExam().getMedecin() != null &&
+                       report.getExam().getMedecin().getId().equals(currentUser.getId());
+            default:
+                return false;
+        }
+    }
+
+    private boolean canDeleteReport(Report report) {
+        if (currentUser == null) return false;
+
+        UserRole userRole = currentUser.getRole();
+
+        switch (userRole) {
+            case ADMIN:
+                return true;
+            case RADIOLOGUE:
+                return report.getRadiologue() != null && 
+                       report.getRadiologue().getId().equals(currentUser.getId());
+            default:
+                return false;
+        }
+    }
+
+    private void editReport(Report report) {
+        // Sélectionner l'examen associé au rapport
+        if (report.getExam() != null) {
+            selectExam(report.getExam());
+            grid.select(report.getExam());
+            
+            // Faire défiler vers l'examen dans la grille principale
+            grid.scrollToItem(report.getExam());
+            
+            Notification.show("✏️ Rapport sélectionné pour modification", 2000, Notification.Position.BOTTOM_END);
+        }
+    }
+
+    private void deleteReport(Report report) {
+        // Dialog de confirmation
+        com.vaadin.flow.component.confirmdialog.ConfirmDialog dialog = new com.vaadin.flow.component.confirmdialog.ConfirmDialog();
+        dialog.setHeader("⚠️ Confirmation de suppression");
+        dialog.setText("Êtes-vous sûr de vouloir supprimer ce rapport ? Cette action est irréversible.");
+        dialog.setCancelable(true);
+        dialog.setConfirmText("Supprimer");
+        dialog.setConfirmButtonTheme("error primary");
+        
+        dialog.addConfirmListener(e -> {
+            try {
+                // Supprimer le rapport
+                reportRepository.delete(report);
+                
+                // Mettre à jour l'examen
+                if (report.getExam() != null) {
+                    Exam exam = report.getExam();
+                    exam.setReport(null);
+                    exam.setStatus(ExamStatus.COMPLETED);
+                    examRepository.save(exam);
+                }
+                
+                // Rafraîchir les grilles
+                refreshGrid();
+                refreshReportsGrid();
+                
+                Notification notification = Notification.show(
+                        "🗑️ Rapport supprimé avec succès",
+                        3000,
+                        Notification.Position.BOTTOM_END
+                );
+                notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                
+            } catch (Exception ex) {
+                Notification notification = Notification.show(
+                        "❌ Erreur lors de la suppression: " + ex.getMessage(),
+                        4000,
+                        Notification.Position.BOTTOM_END
+                );
+                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        });
+        
+        dialog.open();
     }
 
     private Component createReportsSection() {
@@ -799,15 +901,79 @@ public class ReportView extends VerticalLayout {
 
         content.add(findingsDisplay, conclusionDisplay);
 
+        // Boutons d'action
+        HorizontalLayout buttons = new HorizontalLayout();
+        buttons.setWidthFull();
+        buttons.setSpacing(true);
+        buttons.setJustifyContentMode(com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode.END);
+
+        // Bouton Voir OHIF
+        Button viewOhifBtn = new Button("Voir Images (OHIF)", VaadinIcon.FILM.create());
+        viewOhifBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        viewOhifBtn.getStyle()
+                .set("background", "linear-gradient(135deg, #64748b 0%, #475569 100%)")
+                .set("color", "white");
+        viewOhifBtn.addClickListener(e -> {
+            dialog.close();
+            openOhifViewerForReport(report);
+        });
+
         Button closeBtn = new Button("Fermer", e -> dialog.close());
-        content.add(closeBtn);
+        closeBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        buttons.add(viewOhifBtn, closeBtn);
+        content.add(buttons);
 
         dialog.add(content);
         dialog.open();
     }
 
-    private void downloadReport(Report report) {
-        // TODO: Implement PDF download functionality
-        Notification.show("Téléchargement PDF à implémenter", 3000, Notification.Position.BOTTOM_END);
+    private void openOhifViewerForReport(Report report) {
+        if (report.getExam() == null) return;
+
+        String statut = report.getExam().getStatus() != null ? report.getExam().getStatus().toString() : "UNKNOWN";
+        boolean isReady = "COMPLETED".equalsIgnoreCase(statut) || "TERMINE".equalsIgnoreCase(statut);
+
+        if (!isReady) {
+            Notification notification = Notification.show(
+                    "⚠️ Impossible d'afficher les images : L'examen n'est pas encore terminé (Statut: " + statut + ")",
+                    4000,
+                    Notification.Position.MIDDLE
+            );
+            notification.addThemeVariants(NotificationVariant.LUMO_WARNING);
+            return;
+        }
+
+        String studyUid = report.getExam().getStudyInstanceUID() != null ?
+                report.getExam().getStudyInstanceUID() :
+                "1.2.840.10008.5.1.4.1.1.1." + report.getExam().getId();
+
+        String url = "http://localhost:8042/ohif/viewer?StudyInstanceUIDs=" + studyUid;
+
+        Dialog viewerDialog = new Dialog();
+        viewerDialog.getElement().getThemeList().add("no-padding");
+        viewerDialog.setWidth("100vw");
+        viewerDialog.setHeight("100vh");
+        viewerDialog.setResizable(false);
+        viewerDialog.setDraggable(false);
+        viewerDialog.setHeaderTitle("🔬 Visualisation DICOM : " +
+                (report.getExam().getPatient() != null ? 
+                 report.getExam().getPatient().getFirstName() + " " + report.getExam().getPatient().getLastName() : "Patient"));
+
+        IFrame iframe = new IFrame(url);
+        iframe.setSizeFull();
+        iframe.getStyle()
+                .set("border", "none")
+                .set("display", "block");
+
+        viewerDialog.add(iframe);
+
+        Button closeBtn = new Button("Fermer", VaadinIcon.CLOSE.create());
+        closeBtn.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        viewerDialog.getFooter().add(closeBtn);
+
+        closeBtn.addClickListener(e -> viewerDialog.close());
+
+        viewerDialog.open();
     }
 }
