@@ -16,7 +16,7 @@ import org.springframework.context.annotation.ComponentScan;
  *
  */
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.application", "com.hospital.ris"})
+@ComponentScan(basePackages = {"com.application", "com.hospital.ris", "com.application.config"})
 @StyleSheet(Lumo.STYLESHEET)
 @StyleSheet("styles.css")
 @Theme(value = "radiology-app")

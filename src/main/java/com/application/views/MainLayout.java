@@ -451,6 +451,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         tabs.add(createTab("Dashboard", VaadinIcon.DASHBOARD, "dashboard"));
         tabs.add(createTab("Patients", VaadinIcon.USERS, "patients"));
         tabs.add(createTab("Examens", VaadinIcon.CLIPBOARD_TEXT, "exams"));
+        tabs.add(createTab("Planification", VaadinIcon.CALENDAR, "scheduling"));
         tabs.add(createTab("WorkList", VaadinIcon.LIST, "worklist-dragdrop"));
         tabs.add(createTab("Rapports", VaadinIcon.FILE_TEXT, "reports"));
 

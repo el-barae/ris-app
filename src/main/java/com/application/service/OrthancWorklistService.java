@@ -92,8 +92,14 @@ public class OrthancWorklistService {
         // Scheduled procedure step
         Map<String, Object> procedureStep = new HashMap<>();
         procedureStep.put("Modality", exam.getModality());
-        procedureStep.put("ScheduledProcedureStepDescription", exam.getExamType() != null ? 
-            exam.getExamType().toString() : exam.getModality() + " Examination");
+        
+        // Utiliser les instructions de l'examen pour la description
+        String description = exam.getInstructions();
+        if (description == null || description.trim().isEmpty()) {
+            description = exam.getExamType() != null ? 
+                exam.getExamType().toString() : exam.getModality() + " Examination";
+        }
+        procedureStep.put("ScheduledProcedureStepDescription", description);
         
         if (exam.getScheduledDateTime() != null) {
             procedureStep.put("ScheduledProcedureStepStartDate", 

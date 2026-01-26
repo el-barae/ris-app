@@ -42,7 +42,7 @@ public class Exam {
     @Column(name = "modality", nullable = false)
     private String modality;
 
-    @Column(name = "scheduled_date_time", nullable = false)
+    @Column(name = "scheduled_date_time")
     private LocalDateTime scheduledDateTime;
 
     @Column(name = "performed_date_time")

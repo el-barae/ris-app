@@ -11,7 +11,6 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -31,7 +30,6 @@ import com.vaadin.flow.router.RouteAlias;
 import jakarta.annotation.security.RolesAllowed;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -65,7 +63,6 @@ public class ExamView extends VerticalLayout {
     private ComboBox<String> modality = new ComboBox<>("Modalité");
     private ComboBox<String> region = new ComboBox<>("Région anatomique");
     private ComboBox<String> lateralite = new ComboBox<>("Latéralité");
-    private DateTimePicker scheduledDateTime = new DateTimePicker("Date et heure");
     private ComboBox<Priority> priority = new ComboBox<>("Priorité");
     private TextArea instructions = new TextArea("Instructions complémentaires");
 
@@ -302,6 +299,9 @@ public class ExamView extends VerticalLayout {
 
                     if (exam.getStatus() != null) {
                         switch (exam.getStatus()) {
+                            case CREATED:
+                                statusBadge.getElement().getThemeList().add("secondary");
+                                break;
                             case PLANNED:
                                 statusBadge.getElement().getThemeList().add("primary");
                                 break;
@@ -440,11 +440,10 @@ public class ExamView extends VerticalLayout {
         if (isEdit) {
             procedureName.setValue(exam.getInstructions() != null ? exam.getInstructions() : "");
             modality.setValue(exam.getModality());
-            scheduledDateTime.setValue(exam.getScheduledDateTime());
             priority.setValue(exam.getPriority() != null ? exam.getPriority() : Priority.NORMAL);
         }
 
-        section2.add(protocolTemplate, procedureName, modality, region, lateralite, scheduledDateTime, priority);
+        section2.add(protocolTemplate, procedureName, modality, region, lateralite, priority);
         section2.setColspan(protocolTemplate, 2);
         section2.setColspan(procedureName, 2);
 
@@ -565,8 +564,6 @@ public class ExamView extends VerticalLayout {
         lateralite.setItems("N/A", "Gauche", "Droite", "Bilatéral");
         lateralite.setValue("N/A");
 
-        scheduledDateTime.setValue(LocalDateTime.now().plusDays(1));
-
         priority.setItems(Priority.values());
         priority.setValue(Priority.NORMAL);
     }
@@ -643,8 +640,9 @@ public class ExamView extends VerticalLayout {
         exam.setPatient(patientSelector.getValue());
         exam.setMedecin(medecinSelector.getValue());
         exam.setModality(modality.getValue());
-        exam.setScheduledDateTime(scheduledDateTime.getValue() != null ? scheduledDateTime.getValue() : LocalDateTime.now());
-        exam.setStatus(isEdit ? exam.getStatus() : ExamStatus.PLANNED);
+        // Temporairement défini à maintenant pour éviter l'erreur de contrainte NOT NULL
+        exam.setScheduledDateTime(java.time.LocalDateTime.now());
+        exam.setStatus(isEdit ? exam.getStatus() : ExamStatus.CREATED);
         exam.setPriority(priority.getValue());
 
         if (!isEdit) {
@@ -709,7 +707,6 @@ public class ExamView extends VerticalLayout {
         modality.clear();
         region.clear();
         lateralite.setValue("N/A");
-        scheduledDateTime.setValue(LocalDateTime.now().plusDays(1));
         priority.setValue(Priority.NORMAL);
         withContrast.setValue(false);
         contrastType.clear();
