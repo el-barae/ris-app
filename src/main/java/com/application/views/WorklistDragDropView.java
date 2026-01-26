@@ -4,6 +4,7 @@ import com.application.entity.Exam;
 import com.application.entity.ExamStatus;
 import com.application.entity.Priority;
 import com.application.repository.ExamRepository;
+import com.application.service.OrthancWorklistService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -42,6 +43,7 @@ import java.util.List;
 public class WorklistDragDropView extends VerticalLayout {
 
     private final ExamRepository examRepo;
+    private final OrthancWorklistService orthancWorklistService;
     
     private final Grid<Exam> rightGrid = new Grid<>(Exam.class);
     private final VerticalLayout leftCardsContainer = new VerticalLayout();
@@ -55,8 +57,9 @@ public class WorklistDragDropView extends VerticalLayout {
     // Pour les notifications WebSocket
     private Page page;
 
-    public WorklistDragDropView(ExamRepository examRepo) {
+    public WorklistDragDropView(ExamRepository examRepo, OrthancWorklistService orthancWorklistService) {
         this.examRepo = examRepo;
+        this.orthancWorklistService = orthancWorklistService;
         this.plannedCount = new Span();
         this.inProgressCount = new Span();
         this.plannedCount.setText("0");
@@ -148,7 +151,15 @@ public class WorklistDragDropView extends VerticalLayout {
                 .set("color", "white");
         exportBtn.addClickListener(e -> exportMWL());
 
-        header.add(titleLayout, plannedCount, inProgressCount, refreshBtn, exportBtn);
+        // Bouton envoyer à Orthanc
+        Button sendToOrthancBtn = new Button("Envoyer à Orthanc", VaadinIcon.PLAY.create());
+        sendToOrthancBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+        sendToOrthancBtn.getStyle()
+                .set("background", "rgba(255,255,255,0.2)")
+                .set("color", "white");
+        sendToOrthancBtn.addClickListener(e -> sendToOrthanc());
+
+        header.add(titleLayout, plannedCount, inProgressCount, refreshBtn, exportBtn, sendToOrthancBtn);
         header.setFlexGrow(1, titleLayout);
         header.setFlexGrow(0, plannedCount);
         header.setFlexGrow(0, inProgressCount);
@@ -625,6 +636,43 @@ public class WorklistDragDropView extends VerticalLayout {
     private void exportMWL() {
         // Logique d'exportation MWL à implémenter
         Notification.show("Exportation MWL non implémentée", 3000, Notification.Position.BOTTOM_END);
+    }
+
+    private void sendToOrthanc() {
+        List<Exam> selectedExams = examRepo.findByStatusWithRelations(ExamStatus.SELECTED);
+        
+        if (selectedExams.isEmpty()) {
+            Notification.show("Aucun examen sélectionné à envoyer", 3000, Notification.Position.BOTTOM_END);
+            return;
+        }
+
+        // Confirmation dialog
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Confirmation");
+        dialog.setText("Voulez-vous envoyer " + selectedExams.size() + " examen(s) à Orthanc ?");
+        dialog.setCancelable(true);
+        dialog.setConfirmText("Envoyer");
+        dialog.setConfirmButtonTheme("success primary");
+        
+        dialog.addConfirmListener(e -> {
+            boolean success = orthancWorklistService.sendWorklistToOrthanc(selectedExams);
+            
+            if (success) {
+                Notification.show(
+                    selectedExams.size() + " examen(s) envoyé(s) avec succès à Orthanc",
+                    3000,
+                    Notification.Position.BOTTOM_END
+                );
+            } else {
+                Notification.show(
+                    "Erreur lors de l'envoi à Orthanc. Vérifiez la connexion et les logs.",
+                    5000,
+                    Notification.Position.BOTTOM_END
+                );
+            }
+        });
+        
+        dialog.open();
     }
 
     private void displayPlannedExams(List<Exam> exams) {
