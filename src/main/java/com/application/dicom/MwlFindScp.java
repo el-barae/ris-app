@@ -205,7 +205,20 @@ public class MwlFindScp extends BasicCFindSCP {
         }
 
         // Description
-        String desc = exam.getInstructions() != null ? exam.getInstructions() : "";
+        String desc = "";
+        if (exam.getProcedure() != null) {
+            desc = exam.getProcedure().getName();
+        }
+        if (exam.getAdditionalInstructions() != null && !exam.getAdditionalInstructions().trim().isEmpty()) {
+            if (!desc.isEmpty()) {
+                desc += " - ";
+            }
+            desc += exam.getAdditionalInstructions();
+        }
+        if (desc.isEmpty()) {
+            desc = exam.getExamType() != null ? 
+                exam.getExamType().toString() : exam.getModality() + " Examination";
+        }
         spsItem.setString(Tag.ScheduledProcedureStepDescription, VR.LO, desc);
 
         // Médecin

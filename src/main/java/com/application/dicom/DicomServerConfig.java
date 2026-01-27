@@ -5,6 +5,7 @@ import com.application.service.ExamStatusNotificationService;
 import com.application.service.ExamStatusWebSocketService;
 import org.dcm4che3.data.UID;
 import org.dcm4che3.net.*;
+import org.dcm4che3.net.service.BasicCEchoSCP;
 import org.dcm4che3.net.service.DicomServiceRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -55,6 +56,14 @@ public class DicomServerConfig {
         ae.setAssociationAcceptor(true);
         ae.addConnection(conn);
 
+        // ✅ AJOUT : Support C-ECHO (Verification)
+        ae.addTransferCapability(new TransferCapability(
+                null,
+                UID.Verification,  // ← IMPORTANT : Support pour echoscu
+                TransferCapability.Role.SCP,
+                UID.ImplicitVRLittleEndian
+        ));
+
         // Configuration MWL
         ae.addTransferCapability(new TransferCapability(
                 null,
@@ -73,6 +82,10 @@ public class DicomServerConfig {
 
         // Enregistrement des services avec WebSocket
         DicomServiceRegistry serviceRegistry = new DicomServiceRegistry();
+
+        // ✅ AJOUT : Ajouter le service C-ECHO
+        serviceRegistry.addDicomService(new BasicCEchoSCP());
+
         serviceRegistry.addDicomService(new MwlFindScp(examRepository));
         serviceRegistry.addDicomService(new MppsScp(examRepository, notificationService, webSocketService));
         ae.setDimseRQHandler(serviceRegistry);
@@ -89,6 +102,10 @@ public class DicomServerConfig {
         device.bindConnections();
 
         System.out.println("☢️  RIS DICOM Server démarré sur 0.0.0.0:" + port + " (Accessible via 10.110.82.82)");
+        System.out.println("📡 Services disponibles:");
+        System.out.println("   - C-ECHO (Verification)");
+        System.out.println("   - C-FIND (Modality Worklist)");
+        System.out.println("   - N-CREATE/N-SET (MPPS)");
         System.out.println("📡 WebSocket activé pour les notifications MPPS");
     }
 

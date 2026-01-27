@@ -15,22 +15,22 @@ import java.util.Optional;
 @Repository
 public interface ExamRepository extends JpaRepository<Exam, Long> {
 
-    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report")
+    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure")
     List<Exam> findAllWithRelations();
     
-    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report WHERE e.id = :id")
+    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure WHERE e.id = :id")
     Optional<Exam> findByIdWithRelations(Long id);
     
-    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report WHERE e.status = :status")
+    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure WHERE e.status = :status")
     List<Exam> findByStatusWithRelations(ExamStatus status);
     
-    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report WHERE e.medecin.id = :medecinId")
+    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure WHERE e.medecin.id = :medecinId")
     List<Exam> findByMedecinWithRelations(Long medecinId);
     
-    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report WHERE e.scheduledDateTime BETWEEN :start AND :end")
+    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure WHERE e.scheduledDateTime BETWEEN :start AND :end")
     List<Exam> findByScheduledDateTimeBetweenWithRelations(LocalDateTime start, LocalDateTime end);
     
-    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report WHERE e.patient.id = :patientId")
+    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure WHERE e.patient.id = :patientId")
     List<Exam> findByPatientWithRelations(Long patientId);
 
     @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin WHERE e.accessionNumber = :accessionNumber")

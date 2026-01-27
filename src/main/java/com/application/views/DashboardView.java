@@ -232,6 +232,14 @@ public class DashboardView extends VerticalLayout {
         badge.addClassNames("badge", "text-s", "font-semibold", "p-xs");
         
         switch (status) {
+            case CREATED:
+                badge.getStyle().set("background-color", "#f5f5f5");
+                badge.getStyle().set("color", "#616161");
+                break;
+            case SELECTED:
+                badge.getStyle().set("background-color", "#f3e5f5");
+                badge.getStyle().set("color", "#7b1fa2");
+                break;
             case PLANNED:
                 badge.getStyle().set("background-color", "#e3f2fd");
                 badge.getStyle().set("color", "#1976d2");
@@ -247,6 +255,10 @@ public class DashboardView extends VerticalLayout {
             case CANCELLED:
                 badge.getStyle().set("background-color", "#ffebee");
                 badge.getStyle().set("color", "#d32f2f");
+                break;
+            default:
+                badge.getStyle().set("background-color", "#f5f5f5");
+                badge.getStyle().set("color", "#616161");
                 break;
         }
         

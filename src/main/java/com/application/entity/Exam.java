@@ -56,8 +56,13 @@ public class Exam {
     @Column(nullable = false)
     private Priority priority;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "procedure_id")
+    @EqualsAndHashCode.Exclude
+    private ProcedureCatalog procedure;
+
     @Column(columnDefinition = "TEXT")
-    private String instructions;
+    private String additionalInstructions;
 
     @Column(name = "study_instance_uid")
     private String studyInstanceUID;
@@ -82,6 +87,7 @@ public class Exam {
             accessionNumber = "ACC" + timestamp + random;
         }
         
+        // Logique basée sur examType pour compatibilité
         if (examType != null) {
             switch (examType) {
                 case CT:
@@ -108,6 +114,11 @@ public class Exam {
                 default:
                     modality = examType.name();
             }
+        }
+        
+        // Si une procédure est associée, utiliser sa modalité
+        if (procedure != null && procedure.getModalityType() != null) {
+            modality = procedure.getModalityType().getCode();
         }
     }
 }

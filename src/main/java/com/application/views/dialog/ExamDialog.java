@@ -257,7 +257,7 @@ public class ExamDialog extends Dialog {
         binder.forField(instructions)
                 .withValidator(new StringLengthValidator(
                     "Les instructions ne doivent pas dépasser 1000 caractères", 0, 1000))
-                .bind(Exam::getInstructions, Exam::setInstructions);
+                .bind(Exam::getAdditionalInstructions, Exam::setAdditionalInstructions);
     }
     
     private void bindFields() {

@@ -93,9 +93,18 @@ public class OrthancWorklistService {
         Map<String, Object> procedureStep = new HashMap<>();
         procedureStep.put("Modality", exam.getModality());
         
-        // Utiliser les instructions de l'examen pour la description
-        String description = exam.getInstructions();
-        if (description == null || description.trim().isEmpty()) {
+        // Utiliser la procédure et les instructions additionnelles pour la description
+        String description = "";
+        if (exam.getProcedure() != null) {
+            description = exam.getProcedure().getName();
+        }
+        if (exam.getAdditionalInstructions() != null && !exam.getAdditionalInstructions().trim().isEmpty()) {
+            if (!description.isEmpty()) {
+                description += " - ";
+            }
+            description += exam.getAdditionalInstructions();
+        }
+        if (description.isEmpty()) {
             description = exam.getExamType() != null ? 
                 exam.getExamType().toString() : exam.getModality() + " Examination";
         }

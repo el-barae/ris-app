@@ -2,7 +2,9 @@ package com.application.views;
 
 import com.application.entity.*;
 import com.application.repository.ExamRepository;
+import com.application.repository.ModalityTypeRepository;
 import com.application.repository.PatientRepository;
+import com.application.repository.ProcedureCatalogRepository;
 import com.application.repository.UserRepository;
 import com.application.views.calendar.ExamCalendarView;
 import com.vaadin.flow.component.Component;
@@ -31,6 +33,7 @@ import jakarta.annotation.security.RolesAllowed;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -43,6 +46,8 @@ public class ExamView extends VerticalLayout {
     private final PatientRepository patientRepo;
     private final ExamRepository examRepo;
     private final UserRepository userRepo;
+    private final ProcedureCatalogRepository procedureRepo;
+    private final ModalityTypeRepository modalityRepo;
 
     // Composants UI - Recherche et filtres
     private TextField examSearchField = new TextField();
@@ -59,7 +64,8 @@ public class ExamView extends VerticalLayout {
     private ComboBox<Patient> patientSelector = new ComboBox<>("Patient");
     private ComboBox<User> medecinSelector = new ComboBox<>("Médecin prescripteur");
     private ComboBox<String> protocolTemplate = new ComboBox<>("Protocole rapide");
-    private TextField procedureName = new TextField("Procédure");
+    private ComboBox<ProcedureCatalog> procedureSelector = new ComboBox<>("Procédure");
+    private TextField procedureName = new TextField("Nom de la procédure");
     private ComboBox<String> modality = new ComboBox<>("Modalité");
     private ComboBox<String> region = new ComboBox<>("Région anatomique");
     private ComboBox<String> lateralite = new ComboBox<>("Latéralité");
@@ -78,10 +84,12 @@ public class ExamView extends VerticalLayout {
     private Exam selectedExam;
     private ExamCalendarView examCalendar;
 
-    public ExamView(PatientRepository patientRepo, ExamRepository examRepo, UserRepository userRepo) {
+    public ExamView(PatientRepository patientRepo, ExamRepository examRepo, UserRepository userRepo, ProcedureCatalogRepository procedureRepo, ModalityTypeRepository modalityRepo) {
         this.patientRepo = patientRepo;
         this.examRepo = examRepo;
         this.userRepo = userRepo;
+        this.procedureRepo = procedureRepo;
+        this.modalityRepo = modalityRepo;
 
         setSizeFull();
         setPadding(false);
@@ -438,13 +446,17 @@ public class ExamView extends VerticalLayout {
         configureProcedureFields();
 
         if (isEdit) {
-            procedureName.setValue(exam.getInstructions() != null ? exam.getInstructions() : "");
+            if (exam.getProcedure() != null) {
+                procedureSelector.setValue(exam.getProcedure());
+            } else {
+                procedureName.setValue(exam.getAdditionalInstructions() != null ? exam.getAdditionalInstructions() : "");
+            }
             modality.setValue(exam.getModality());
             priority.setValue(exam.getPriority() != null ? exam.getPriority() : Priority.NORMAL);
         }
 
-        section2.add(protocolTemplate, procedureName, modality, region, lateralite, priority);
-        section2.setColspan(protocolTemplate, 2);
+        section2.add(procedureSelector, procedureName, modality, region, lateralite, priority);
+        section2.setColspan(procedureSelector, 2);
         section2.setColspan(procedureName, 2);
 
         // Section 3: Contraste
@@ -553,16 +565,52 @@ public class ExamView extends VerticalLayout {
     }
 
     private void configureProcedureFields() {
-        procedureName.setPlaceholder("Ex: Scanner thoracique avec injection");
+        procedureSelector.setItems(procedureRepo.findAllWithModality());
+        procedureSelector.setItemLabelGenerator(procedure -> {
+            StringBuilder label = new StringBuilder(procedure.getName());
+            if (procedure.getRegion() != null) {
+                label.append(" (" + procedure.getRegion() + ")");
+            }
+            return label.toString();
+        });
+        procedureSelector.setPlaceholder("Sélectionner une procédure");
+        procedureSelector.setClearButtonVisible(true);
+        procedureSelector.addValueChangeListener(e -> {
+            boolean showCustomFields = e.getValue() == null;
+            procedureName.setVisible(showCustomFields);
+            region.setVisible(showCustomFields);
+            lateralite.setVisible(showCustomFields);
+            withContrast.setVisible(showCustomFields);
+            if (e.getValue() != null) {
+                if (e.getValue().getModalityType() != null) {
+                    modality.setValue(e.getValue().getModalityType().getCode());
+                }
+                region.setValue(e.getValue().getRegion());
+                lateralite.setValue(e.getValue().getLaterality() != null ? e.getValue().getLaterality() : "N/A");
+                withContrast.setValue(e.getValue().getContrastRequired());
+                if (e.getValue().getContrastRequired()) {
+                    contrastType.setValue(e.getValue().getContrastType());
+                    injectionRate.setValue(e.getValue().getInjectionRate());
+                    contrastVolume.setValue(e.getValue().getContrastVolume());
+                }
+            }
+        });
 
-        modality.setItems("CT", "MR", "US", "CR", "DX", "MG", "NM");
+        procedureName.setPlaceholder("Ex: Scanner thoracique avec injection");
+        procedureName.setVisible(false);
+
+        // Charger les modalités depuis la base de données
+        List<ModalityType> modalities = modalityRepo.findAllActiveOrdered();
+        modality.setItems(modalities.stream().map(ModalityType::getCode).toList());
         modality.setPlaceholder("Sélectionner");
 
         region.setItems("Head", "Neck", "Chest", "Abdomen", "Pelvis", "Spine", "Extremity");
         region.setPlaceholder("Sélectionner");
+        region.setVisible(false);
 
         lateralite.setItems("N/A", "Gauche", "Droite", "Bilatéral");
         lateralite.setValue("N/A");
+        lateralite.setVisible(false);
 
         priority.setItems(Priority.values());
         priority.setValue(Priority.NORMAL);
@@ -583,6 +631,8 @@ public class ExamView extends VerticalLayout {
         contrastType.setPlaceholder("Ex: Iohexol 350");
         injectionRate.setPlaceholder("Ex: 4");
         contrastVolume.setPlaceholder("Ex: 100");
+        
+        withContrast.setVisible(false);
     }
 
     // ==================== LOGIQUE MÉTIER ====================
@@ -649,34 +699,43 @@ public class ExamView extends VerticalLayout {
             exam.setAccessionNumber("ACC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         }
 
-        // Construction des instructions
-        StringBuilder fullInstructions = new StringBuilder();
-        if (procedureName.getValue() != null && !procedureName.getValue().isEmpty()) {
-            fullInstructions.append(procedureName.getValue()).append("\n");
-        }
-        if (region.getValue() != null) {
-            fullInstructions.append("Région: ").append(region.getValue()).append("\n");
-        }
-        if (lateralite.getValue() != null && !lateralite.getValue().equals("N/A")) {
-            fullInstructions.append("Latéralité: ").append(lateralite.getValue()).append("\n");
-        }
-        if (withContrast.getValue()) {
-            fullInstructions.append("\nInjection de contraste:\n");
-            if (contrastType.getValue() != null) {
-                fullInstructions.append("- Type: ").append(contrastType.getValue()).append("\n");
+        // Créer ou trouver la procédure
+        ProcedureCatalog procedure = null;
+        if (procedureSelector.getValue() != null) {
+            procedure = procedureSelector.getValue();
+        } else if (procedureName.getValue() != null && !procedureName.getValue().isEmpty()) {
+            // Créer une nouvelle procédure
+            procedure = new ProcedureCatalog();
+            procedure.setName(procedureName.getValue());
+            
+            // Trouver la modalité correspondante
+            Optional<ModalityType> modalityType = modalityRepo.findByCode(modality.getValue());
+            if (modalityType.isPresent()) {
+                procedure.setModalityType(modalityType.get());
+            } else {
+                // Créer une modalité par défaut si elle n'existe pas
+                ModalityType newModality = new ModalityType();
+                newModality.setCode(modality.getValue());
+                newModality.setName(modality.getValue());
+                newModality.setIsActive(true);
+                newModality = modalityRepo.save(newModality);
+                procedure.setModalityType(newModality);
             }
-            if (injectionRate.getValue() != null) {
-                fullInstructions.append("- Débit: ").append(injectionRate.getValue()).append(" ml/s\n");
+            
+            procedure.setRegion(region.getValue());
+            procedure.setLaterality(lateralite.getValue() != null && !lateralite.getValue().equals("N/A") ? lateralite.getValue() : null);
+            procedure.setContrastRequired(withContrast.getValue());
+            if (withContrast.getValue()) {
+                procedure.setContrastType(contrastType.getValue());
+                procedure.setInjectionRate(injectionRate.getValue());
+                procedure.setContrastVolume(contrastVolume.getValue());
             }
-            if (contrastVolume.getValue() != null) {
-                fullInstructions.append("- Volume: ").append(contrastVolume.getValue()).append(" ml\n");
-            }
+            procedure.setDescription("Procédure créée automatiquement depuis la vue examens");
+            procedure = procedureRepo.save(procedure);
         }
-        if (instructions.getValue() != null && !instructions.getValue().isEmpty()) {
-            fullInstructions.append("\n").append(instructions.getValue());
-        }
-
-        exam.setInstructions(fullInstructions.toString());
+        
+        exam.setProcedure(procedure);
+        exam.setAdditionalInstructions(instructions.getValue());
 
         // Définir le type d'examen
         if (modality.getValue() != null) {
@@ -702,7 +761,7 @@ public class ExamView extends VerticalLayout {
     private void resetForm() {
         patientSelector.clear();
         medecinSelector.clear();
-        protocolTemplate.clear();
+        procedureSelector.clear();
         procedureName.clear();
         modality.clear();
         region.clear();
@@ -713,6 +772,12 @@ public class ExamView extends VerticalLayout {
         injectionRate.clear();
         contrastVolume.clear();
         instructions.clear();
+        
+        // Réinitialiser la visibilité des champs
+        procedureName.setVisible(false);
+        region.setVisible(false);
+        lateralite.setVisible(false);
+        withContrast.setVisible(false);
     }
 
     private void updateExamList() {
@@ -883,21 +948,63 @@ public class ExamView extends VerticalLayout {
         );
 
         // Section Instructions
-        if (exam.getInstructions() != null && !exam.getInstructions().isEmpty()) {
+        String instructionsText = "";
+        try {
+            if (exam.getProcedure() != null) {
+                // Accès sécurisé aux propriétés de la procédure
+                String procedureName = exam.getProcedure().getName();
+                if (procedureName != null) {
+                    instructionsText = procedureName;
+                }
+                
+                String description = exam.getProcedure().getDescription();
+                if (description != null && !description.isEmpty()) {
+                    instructionsText += "\n" + description;
+                }
+                
+                // Afficher le code de la modalité
+                if (exam.getProcedure().getModalityType() != null) {
+                    instructionsText += "\n[" + exam.getProcedure().getModalityType().getCode() + "]";
+                }
+                
+                Boolean contrastRequired = exam.getProcedure().getContrastRequired();
+                if (contrastRequired != null && contrastRequired) {
+                    instructionsText += "\n\nInjection de contraste requise";
+                    String contrastType = exam.getProcedure().getContrastType();
+                    if (contrastType != null) {
+                        instructionsText += " - " + contrastType;
+                    }
+                }
+            }
+            
+            String additionalInstructions = exam.getAdditionalInstructions();
+            if (additionalInstructions != null && !additionalInstructions.isEmpty()) {
+                if (!instructionsText.isEmpty()) {
+                    instructionsText += "\n\n";
+                }
+                instructionsText += additionalInstructions;
+            }
+        } catch (Exception e) {
+            // En cas d'erreur de chargement lazy, afficher un message par défaut
+            instructionsText = exam.getAdditionalInstructions() != null ? 
+                exam.getAdditionalInstructions() : "Informations de procédure non disponibles";
+        }
+        
+        if (!instructionsText.isEmpty()) {
             VerticalLayout instructionsSection = new VerticalLayout();
             instructionsSection.setPadding(false);
 
             H4 instructionsTitle = new H4("Instructions");
             instructionsTitle.getStyle().set("color", "var(--lumo-primary-text-color)");
 
-            Paragraph instructionsText = new Paragraph(exam.getInstructions());
-            instructionsText.getStyle()
+            Paragraph instructionsParagraph = new Paragraph(instructionsText);
+            instructionsParagraph.getStyle()
                     .set("background", "var(--lumo-contrast-5pct)")
                     .set("padding", "12px")
                     .set("border-radius", "4px")
                     .set("white-space", "pre-wrap");
 
-            instructionsSection.add(instructionsTitle, instructionsText);
+            instructionsSection.add(instructionsTitle, instructionsParagraph);
             content.add(patientSection, new Hr(), examSection, new Hr(), instructionsSection);
         } else {
             content.add(patientSection, new Hr(), examSection);

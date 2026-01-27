@@ -165,7 +165,7 @@ public class DataInitializer implements CommandLineRunner {
             exam.setScheduledDateTime(LocalDateTime.now().plusDays(random.nextInt(7)).plusHours(random.nextInt(24)));
             exam.setStatus(statuses.get(random.nextInt(statuses.size())));
             exam.setPriority(priorities.get(random.nextInt(priorities.size())));
-            exam.setInstructions("Examen " + (i + 1) + " - Instructions standards");
+            exam.setAdditionalInstructions("Examen " + (i + 1) + " - Instructions standards");
 
             if (exam.getStatus() == ExamStatus.COMPLETED) {
                 exam.setPerformedDateTime(exam.getScheduledDateTime().plusHours(random.nextInt(3)));

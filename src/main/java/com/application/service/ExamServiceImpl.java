@@ -82,7 +82,8 @@ public class ExamServiceImpl implements ExamService {
         existingExam.setMedecin(exam.getMedecin());
         existingExam.setExamType(exam.getExamType());
         existingExam.setScheduledDateTime(exam.getScheduledDateTime());
-        existingExam.setInstructions(exam.getInstructions());
+        existingExam.setProcedure(exam.getProcedure());
+        existingExam.setAdditionalInstructions(exam.getAdditionalInstructions());
         existingExam.setPriority(exam.getPriority());
 
         // Recalcul de la modalité si le type a changé
