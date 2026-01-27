@@ -51,6 +51,12 @@ public class Report {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @ManyToOne
+    @JoinColumn(name = "author_id")
+    private User author; // Celui qui a CRÉÉ/RÉDIGÉ le rapport (Doctor/Radiologue)
+
+
+
     @PreUpdate
     public void setValidatedAtOnValidation() {
         if (validated != null && validated && validatedAt == null) {
