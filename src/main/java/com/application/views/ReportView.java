@@ -41,6 +41,12 @@ import java.util.List;
 @AnonymousAllowed
 public class ReportView extends VerticalLayout {
 
+    // =================================================================
+    // CONFIGURATION: CHANGEZ L'ADRESSE IP ICI
+    // =================================================================
+    private String ohifBaseUrl = "http://localhost:8042";
+    // Exemple pour un serveur distant : "http://192.168.1.100:8042";
+
     private final ReportRepository reportRepository;
     private final ExamRepository examRepository;
 
@@ -399,7 +405,8 @@ public class ReportView extends VerticalLayout {
                 exam.getStudyInstanceUID() :
                 "1.2.840.10008.5.1.4.1.1.1." + exam.getId();
 
-        String url = "http://localhost:8042/ohif/viewer?StudyInstanceUIDs=" + studyUid;
+        // UTILISATION DE LA NOUVELLE VARIABLE ICI
+        String url = ohifBaseUrl + "/ohif/viewer?StudyInstanceUIDs=" + studyUid;
 
         IFrame iframe = new IFrame(url);
         iframe.setSizeFull();
