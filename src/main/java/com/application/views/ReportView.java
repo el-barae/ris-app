@@ -115,7 +115,8 @@ public class ReportView extends VerticalLayout {
         logoIcon.setSize("28px");
         logoIcon.setColor("white");
 
-        H3 title = new H3("Worklist Radiologie");
+        // --- MODIFICATION 1 : CHANGEMENT DU TITRE ---
+        H3 title = new H3("Liste des Examens et Rapports");
         title.getStyle().set("color", "white").set("margin", "0");
 
         HorizontalLayout titleLayout = new HorizontalLayout(logoIcon, title);
@@ -140,7 +141,9 @@ public class ReportView extends VerticalLayout {
         contentLayout.setSizeFull();
         contentLayout.setPadding(true);
         contentLayout.setSpacing(true);
-        contentLayout.setMaxWidth("1600px");
+
+        // --- MODIFICATION 2 : LARGEUR MAXIMALE PASSÉE À 100% (PLEIN ÉCRAN) ---
+        contentLayout.setMaxWidth("100%");
         contentLayout.getStyle().set("margin", "0 auto");
 
         Tab tabWorklist = new Tab(VaadinIcon.LIST.create(), new Span("À traiter / En cours"));
@@ -353,8 +356,6 @@ public class ReportView extends VerticalLayout {
             pdfBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
             pdfBtn.setTooltipText("Télécharger PDF");
 
-            // --- CORRECTION DU LIEN DE TÉLÉCHARGEMENT ---
-            // On utilise le constructeur de Anchor avec StreamResource pour éviter l'erreur "Deprecated"
             Anchor downloadLink = new Anchor(createPdfResource(report), "");
             downloadLink.add(pdfBtn);
             downloadLink.getElement().setAttribute("download", true);
@@ -414,8 +415,6 @@ public class ReportView extends VerticalLayout {
                 Patient p = report.getExam().getPatient();
                 cellPatient.addElement(new Paragraph("Nom: " + p.getLastName() + " " + p.getFirstName(), normalFont));
                 cellPatient.addElement(new Paragraph("IPP: " + p.getPatientId(), normalFont));
-                // --- CORRECTION DU CHAMP DATE DE NAISSANCE ---
-                // Utilisation de getDateOfBirth() au lieu de getBirthDate()
                 cellPatient.addElement(new Paragraph("Né(e) le: " + (p.getDateOfBirth() != null ? p.getDateOfBirth().toString() : "N/A"), normalFont));
             }
             table.addCell(cellPatient);
