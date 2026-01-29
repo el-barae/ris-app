@@ -201,7 +201,8 @@ public class PatientView extends VerticalLayout {
         if (patient.getDateOfBirth() == null) {
             return "N/A";
         }
-        return String.valueOf(Period.between(patient.getDateOfBirth(), LocalDate.now()).getYears());
+        int years = Period.between(patient.getDateOfBirth(), LocalDate.now()).getYears();
+        return years + " an" + (years > 1 ? "s" : "");
     }
 
     private Component createActionButtons(Patient patient) {

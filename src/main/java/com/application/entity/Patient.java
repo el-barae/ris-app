@@ -53,6 +53,9 @@ public class Patient {
 
     private String postalCode;
 
+    @Column(name = "cin")
+    private String cin;
+
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Exam> exams;
 

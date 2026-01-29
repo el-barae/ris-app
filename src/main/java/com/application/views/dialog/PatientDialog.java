@@ -39,6 +39,7 @@ public class PatientDialog extends Dialog {
     private final TextField address = new TextField("Adresse");
     private final TextField city = new TextField("Ville");
     private final TextField postalCode = new TextField("Code postal");
+    private final TextField cin = new TextField("CIN");
     
     public PatientDialog(Patient patient, Consumer<Patient> saveCallback) {
         this.patient = patient != null ? patient : new Patient();
@@ -69,7 +70,7 @@ public class PatientDialog extends Dialog {
         FormLayout formLayout = new FormLayout();
         formLayout.setWidthFull();
         formLayout.add(patientId, firstName, lastName, dateOfBirth, gender, 
-                      phone, email, address, city, postalCode);
+                      phone, email, address, city, postalCode, cin);
         
         // Boutons
         HorizontalLayout buttonLayout = new HorizontalLayout();
@@ -134,6 +135,9 @@ public class PatientDialog extends Dialog {
         city.setPlaceholder("Ex: Paris");
         
         postalCode.setPlaceholder("Ex: 75001");
+        
+        cin.setPlaceholder("Ex: AB123456");
+        cin.setRequiredIndicatorVisible(false);
     }
     
     private void configureBinder() {
@@ -203,6 +207,15 @@ public class PatientDialog extends Dialog {
                     postal.matches("^[0-9]{5}$"), 
                     "Le code postal doit contenir 5 chiffres")
                 .bind(Patient::getPostalCode, Patient::setPostalCode);
+        
+        // Validation du CIN
+        binder.forField(cin)
+                .withValidator(new StringLengthValidator(
+                    "Le CIN ne doit pas dépasser 20 caractères", 0, 20))
+                .withValidator(cinValue -> cinValue == null || cinValue.trim().isEmpty() || 
+                    cinValue.matches("^[A-Za-z0-9]+$"), 
+                    "Le CIN ne peut contenir que des lettres et des chiffres")
+                .bind(Patient::getCin, Patient::setCin);
     }
     
     private void bindFields() {

@@ -6,6 +6,7 @@ import com.application.repository.ModalityTypeRepository;
 import com.application.repository.PatientRepository;
 import com.application.repository.ProcedureCatalogRepository;
 import com.application.repository.UserRepository;
+import com.application.views.dialog.PatientDialog;
 import com.application.views.calendar.ExamCalendarView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -686,8 +687,18 @@ public class ExamView extends VerticalLayout {
         }
 
         Exam exam = isEdit ? selectedExam : new Exam();
+        
+        Patient selectedPatient = patientSelector.getValue();
+        
+        // Vérifier si le patient doit être sauvegardé (cas d'un nouveau patient)
+        if (selectedPatient != null && selectedPatient.getId() == null) {
+            selectedPatient = patientRepo.save(selectedPatient);
+            // Rafraîchir le sélecteur pour inclure le patient sauvegardé
+            configurePatientSelector();
+            patientSelector.setValue(selectedPatient);
+        }
 
-        exam.setPatient(patientSelector.getValue());
+        exam.setPatient(selectedPatient);
         exam.setMedecin(medecinSelector.getValue());
         exam.setModality(modality.getValue());
         // Temporairement défini à maintenant pour éviter l'erreur de contrainte NOT NULL
@@ -846,56 +857,16 @@ public class ExamView extends VerticalLayout {
     // ==================== DIALOGUES ====================
 
     private void openPatientDialog(Dialog parentDialog) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Nouveau patient");
-        dialog.setWidth("500px");
-
-        FormLayout formLayout = new FormLayout();
-        formLayout.setResponsiveSteps(new FormLayout.ResponsiveStep("0", 2));
-
-        TextField patientId = new TextField("IPP (ID Hôpital)");
-        TextField lastName = new TextField("Nom");
-        TextField firstName = new TextField("Prénom");
-        DatePicker dob = new DatePicker("Date de naissance");
-        ComboBox<Gender> gender = new ComboBox<>("Sexe");
-        gender.setItems(Gender.values());
-
-        formLayout.add(patientId, lastName, firstName, dob, gender);
-        formLayout.setColspan(patientId, 2);
-
-        Button saveBtn = new Button("Enregistrer", e -> {
-            if (lastName.getValue() == null || lastName.getValue().trim().isEmpty()) {
-                Notification.show("Le nom est obligatoire", 3000, Notification.Position.MIDDLE);
-                return;
-            }
-
-            Patient p = new Patient();
-            p.setPatientId(patientId.getValue());
-            p.setLastName(lastName.getValue());
-            p.setFirstName(firstName.getValue());
-            p.setDateOfBirth(dob.getValue());
-            p.setGender(gender.getValue());
-
-            patientRepo.save(p);
-
+        PatientDialog patientDialog = new PatientDialog(null, patient -> {
             // Rafraîchir le sélecteur de patients
             configurePatientSelector();
-            patientSelector.setValue(p);
-
-            dialog.close();
+            patientSelector.setValue(patient);
+            
             Notification.show("Patient créé avec succès", 3000, Notification.Position.BOTTOM_START)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
         });
-        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-
-        Button cancelBtn = new Button("Annuler", e -> dialog.close());
-
-        HorizontalLayout buttons = new HorizontalLayout(saveBtn, cancelBtn);
-        buttons.setJustifyContentMode(JustifyContentMode.END);
-
-        VerticalLayout layout = new VerticalLayout(formLayout, buttons);
-        dialog.add(layout);
-        dialog.open();
+        
+        patientDialog.open();
     }
 
     private void openExamDetails(Exam exam) {

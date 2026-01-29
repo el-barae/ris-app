@@ -578,16 +578,17 @@ public class WorklistDragDropView extends VerticalLayout {
         content.setSpacing(true);
 
         content.add(
-                createDetailRow("", "Patient  ", exam.getPatient() != null ?
+                createDetailRow("", "Patient", exam.getPatient() != null ?
                         exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName() : "N/A"),
-                createDetailRow("", "IPP  ", exam.getPatient() != null ? exam.getPatient().getPatientId() : "N/A"),
-                createDetailRow("", "Accession  ", exam.getAccessionNumber()),
-                createDetailRow("", "Modalité  ", exam.getModality()),
-                createDetailRow("", "Type  ", exam.getExamType() != null ? exam.getExamType().toString() : "N/A"),
-                createDetailRow("", "Programmé  ", exam.getScheduledDateTime() != null ?
+                createDetailRow("", "IPP", exam.getPatient() != null ? exam.getPatient().getPatientId() : "N/A"),
+                createDetailRow("", "CIN", exam.getPatient() != null ? exam.getPatient().getCin() : "N/A"),
+                createDetailRow("", "Accession", exam.getAccessionNumber()),
+                createDetailRow("", "Modalité", exam.getModality()),
+                createDetailRow("", "Type", exam.getExamType() != null ? exam.getExamType().toString() : "N/A"),
+                createDetailRow("", "Programmé", exam.getScheduledDateTime() != null ?
                         exam.getScheduledDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A"),
-                createDetailRow("", "Priorité  ", exam.getPriority() != null ? exam.getPriority().toString() : "NORMAL"),
-                createDetailRow("", "Médecin  ", exam.getMedecin() != null ?
+                createDetailRow("", "Priorité", exam.getPriority() != null ? exam.getPriority().toString() : "NORMAL"),
+                createDetailRow("", "Médecin", exam.getMedecin() != null ?
                         exam.getMedecin().getFirstName() + " " + exam.getMedecin().getLastName() : "N/A")
         );
 
@@ -627,7 +628,7 @@ public class WorklistDragDropView extends VerticalLayout {
                 .set("padding", "0.75rem")
                 .set("border-bottom", "1px solid #e2e8f0");
 
-        Span labelSpan = new Span(label);
+        Span labelSpan = new Span(label + ":");
         labelSpan.getStyle()
                 .set("font-weight", "600")
                 .set("color", "#64748b");
