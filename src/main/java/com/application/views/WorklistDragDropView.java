@@ -3,11 +3,16 @@ package com.application.views;
 import com.application.entity.Exam;
 import com.application.entity.ExamStatus;
 import com.application.entity.Priority;
+import com.application.entity.ProcedureCatalog;
+import com.application.entity.ModalityType;
 import com.application.repository.ExamRepository;
+import com.application.repository.ProcedureCatalogRepository;
+import com.application.repository.ModalityTypeRepository;
 import com.application.service.OrthancWorklistService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -44,6 +49,8 @@ public class WorklistDragDropView extends VerticalLayout {
 
     private final ExamRepository examRepo;
     private final OrthancWorklistService orthancWorklistService;
+    private final ProcedureCatalogRepository procedureRepo;
+    private final ModalityTypeRepository modalityRepo;
     
     private final Grid<Exam> rightGrid = new Grid<>(Exam.class);
     private final VerticalLayout leftCardsContainer = new VerticalLayout();
@@ -57,9 +64,12 @@ public class WorklistDragDropView extends VerticalLayout {
     // Pour les notifications WebSocket
     private Page page;
 
-    public WorklistDragDropView(ExamRepository examRepo, OrthancWorklistService orthancWorklistService) {
+    public WorklistDragDropView(ExamRepository examRepo, OrthancWorklistService orthancWorklistService, 
+                                ProcedureCatalogRepository procedureRepo, ModalityTypeRepository modalityRepo) {
         this.examRepo = examRepo;
         this.orthancWorklistService = orthancWorklistService;
+        this.procedureRepo = procedureRepo;
+        this.modalityRepo = modalityRepo;
         this.plannedCount = new Span();
         this.inProgressCount = new Span();
         this.plannedCount.setText("0");
@@ -152,7 +162,7 @@ public class WorklistDragDropView extends VerticalLayout {
         exportBtn.addClickListener(e -> exportMWL());
 
         // Bouton envoyer à Orthanc
-        Button sendToOrthancBtn = new Button("Envoyer à Orthanc", VaadinIcon.PLAY.create());
+        Button sendToOrthancBtn = new Button("Envoyer à MWL", VaadinIcon.PLAY.create());
         sendToOrthancBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
         sendToOrthancBtn.getStyle()
                 .set("background", "rgba(255,255,255,0.2)")
@@ -228,7 +238,7 @@ public class WorklistDragDropView extends VerticalLayout {
                 .set("background-color", "#ecfdf5")
                 .set("border-bottom", "2px solid #10b981");
 
-        H3 rightTitle = new H3(" Worklist Active (MWL)");
+        H3 rightTitle = new H3(" Examens a envoye vers MWL");
         rightTitle.getStyle()
                 .set("margin", "0")
                 .set("color", "#065f46");
@@ -353,19 +363,29 @@ public class WorklistDragDropView extends VerticalLayout {
         actions.setSpacing(true);
         actions.getStyle().set("margin-top", "0.5rem");
 
-        Button addBtn = new Button("MWL", VaadinIcon.ARROW_RIGHT.create());
+        Button addBtn = new Button(VaadinIcon.ARROW_RIGHT.create());
         addBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
-        addBtn.setWidth("30%");
+        addBtn.setWidth("20%");
         addBtn.getStyle()
                 .set("background", "linear-gradient(135deg, #667eea 0%, #764ba2 100%)")
                 .set("border", "none");
         addBtn.addClickListener(e -> addToWorklist(exam));
 
+        Button editBtn = new Button(VaadinIcon.EDIT.create());
+        editBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        editBtn.getElement().setProperty("title", "Modifier l'examen");
+        editBtn.addClickListener(e -> openEditExamDialog(exam));
+
+        Button deleteBtn = new Button(VaadinIcon.TRASH.create());
+        deleteBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
+        deleteBtn.getElement().setProperty("title", "Supprimer l'examen");
+        deleteBtn.addClickListener(e -> deleteExam(exam));
+
         Button infoBtn = new Button(VaadinIcon.INFO_CIRCLE.create());
         infoBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ICON);
         infoBtn.addClickListener(e -> showExamDetails(exam));
 
-        actions.add(addBtn, infoBtn);
+        actions.add(addBtn, editBtn, deleteBtn, infoBtn);
         actions.setFlexGrow(1, addBtn);
 
         cardContent.add(cardHeader, infoGrid, actions);
@@ -558,16 +578,16 @@ public class WorklistDragDropView extends VerticalLayout {
         content.setSpacing(true);
 
         content.add(
-                createDetailRow("", "Patient", exam.getPatient() != null ?
+                createDetailRow("", "Patient  ", exam.getPatient() != null ?
                         exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName() : "N/A"),
-                createDetailRow("", "IPP", exam.getPatient() != null ? exam.getPatient().getPatientId() : "N/A"),
-                createDetailRow("", "Accession", exam.getAccessionNumber()),
-                createDetailRow("", "Modalité", exam.getModality()),
-                createDetailRow("", "Type", exam.getExamType() != null ? exam.getExamType().toString() : "N/A"),
-                createDetailRow("", "Programmé", exam.getScheduledDateTime() != null ?
+                createDetailRow("", "IPP  ", exam.getPatient() != null ? exam.getPatient().getPatientId() : "N/A"),
+                createDetailRow("", "Accession  ", exam.getAccessionNumber()),
+                createDetailRow("", "Modalité  ", exam.getModality()),
+                createDetailRow("", "Type  ", exam.getExamType() != null ? exam.getExamType().toString() : "N/A"),
+                createDetailRow("", "Programmé  ", exam.getScheduledDateTime() != null ?
                         exam.getScheduledDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A"),
-                createDetailRow("", "Priorité", exam.getPriority() != null ? exam.getPriority().toString() : "NORMAL"),
-                createDetailRow("", "Médecin", exam.getMedecin() != null ?
+                createDetailRow("", "Priorité  ", exam.getPriority() != null ? exam.getPriority().toString() : "NORMAL"),
+                createDetailRow("", "Médecin  ", exam.getMedecin() != null ?
                         exam.getMedecin().getFirstName() + " " + exam.getMedecin().getLastName() : "N/A")
         );
 
@@ -714,5 +734,145 @@ public class WorklistDragDropView extends VerticalLayout {
         }
     }
 
-    // ... (code existant)
+    private void openEditExamDialog(Exam exam) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Modifier l'examen");
+        dialog.setWidth("600px");
+
+        VerticalLayout content = new VerticalLayout();
+        content.setPadding(true);
+        content.setSpacing(true);
+
+        // Patient information (read-only)
+        TextField patientField = new TextField("Patient");
+        patientField.setReadOnly(true);
+        patientField.setWidthFull();
+        if (exam.getPatient() != null) {
+            patientField.setValue(exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName());
+        }
+
+        // Modality selection
+        ComboBox<ModalityType> modalityCombo = new ComboBox<>("Modalité");
+        modalityCombo.setWidthFull();
+        modalityCombo.setItems(modalityRepo.findAllActiveOrdered());
+        modalityCombo.setItemLabelGenerator(modality -> 
+            modality.getCode() + " - " + modality.getName());
+        
+        // Find current modality
+        if (exam.getModality() != null) {
+            modalityRepo.findByCode(exam.getModality())
+                .ifPresent(modalityCombo::setValue);
+        }
+
+        // Procedure selection
+        ComboBox<ProcedureCatalog> procedureCombo = new ComboBox<>("Procédure");
+        procedureCombo.setWidthFull();
+        procedureCombo.setItemLabelGenerator(procedure -> 
+            procedure.getName() + " (" + procedure.getProcedureCode() + ")");
+        
+        // Update procedures based on selected modality
+        modalityCombo.addValueChangeListener(event -> {
+            ModalityType selectedModality = event.getValue();
+            if (selectedModality != null) {
+                procedureCombo.setItems(procedureRepo.findByModalityTypeAndIsActive(selectedModality, true));
+            } else {
+                procedureCombo.setItems();
+            }
+            procedureCombo.clear();
+        });
+
+        // Set current procedure if exists
+        if (exam.getProcedure() != null) {
+            procedureCombo.setValue(exam.getProcedure());
+            // Also set the modality
+            if (exam.getProcedure().getModalityType() != null) {
+                modalityCombo.setValue(exam.getProcedure().getModalityType());
+            }
+        }
+
+        // Load initial procedures if modality is already set
+        if (modalityCombo.getValue() != null) {
+            procedureCombo.setItems(procedureRepo.findByModalityTypeAndIsActive(modalityCombo.getValue(), true));
+        }
+
+        content.add(patientField, modalityCombo, procedureCombo);
+        dialog.add(content);
+
+        // Buttons
+        Button saveBtn = new Button("Enregistrer", e -> {
+            ModalityType selectedModality = modalityCombo.getValue();
+            ProcedureCatalog selectedProcedure = procedureCombo.getValue();
+
+            if (selectedModality == null) {
+                Notification.show("Veuillez sélectionner une modalité", 3000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            // Update exam
+            exam.setModality(selectedModality.getCode());
+            exam.setProcedure(selectedProcedure);
+            
+            // Update examType based on modality
+            String modalityCode = selectedModality.getCode();
+            switch (modalityCode) {
+                case "CT" -> exam.setExamType(com.application.entity.ExamType.CT);
+                case "MR" -> exam.setExamType(com.application.entity.ExamType.MRI);
+                case "XR", "CR", "DX" -> exam.setExamType(com.application.entity.ExamType.RX);
+                case "US" -> exam.setExamType(com.application.entity.ExamType.ECHO);
+                case "MG" -> exam.setExamType(com.application.entity.ExamType.MAMMO);
+                case "RF" -> exam.setExamType(com.application.entity.ExamType.FLUORO);
+                case "PT" -> exam.setExamType(com.application.entity.ExamType.PET);
+            }
+
+            examRepo.save(exam);
+            refreshGrids();
+            
+            Notification.show("Examen modifié avec succès", 3000, Notification.Position.BOTTOM_END);
+            dialog.close();
+        });
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button cancelBtn = new Button("Annuler", e -> dialog.close());
+        cancelBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        HorizontalLayout buttons = new HorizontalLayout(saveBtn, cancelBtn);
+        buttons.setSpacing(true);
+        dialog.getFooter().add(buttons);
+
+        dialog.open();
+    }
+
+    private void deleteExam(Exam exam) {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Confirmation de suppression");
+        dialog.setText("Voulez-vous vraiment supprimer définitivement cet examen ?\n\n" +
+                "Patient: " + (exam.getPatient() != null ? 
+                        exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName() : "N/A") + "\n" +
+                "Modalité: " + exam.getModality() + "\n" +
+                "Accession: " + exam.getAccessionNumber());
+        dialog.setCancelable(true);
+        dialog.setConfirmText("Supprimer");
+        dialog.setConfirmButtonTheme("error primary");
+        
+        dialog.addConfirmListener(e -> {
+            try {
+                examRepo.delete(exam);
+                refreshGrids();
+                
+                Notification.show(
+                    "Examen supprimé définitivement",
+                    3000,
+                    Notification.Position.BOTTOM_END
+                );
+            } catch (Exception ex) {
+                Notification.show(
+                    "Erreur lors de la suppression: " + ex.getMessage(),
+                    5000,
+                    Notification.Position.BOTTOM_END
+                );
+            }
+        });
+        
+        dialog.open();
+    }
 }
