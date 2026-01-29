@@ -154,22 +154,23 @@ public class WorklistDragDropView extends VerticalLayout {
         });
 
         // Bouton exporter MWL
-        Button exportBtn = new Button("Exporter MWL", VaadinIcon.DOWNLOAD.create());
-        exportBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        exportBtn.getStyle()
-                .set("background", "rgba(255,255,255,0.2)")
-                .set("color", "white");
-        exportBtn.addClickListener(e -> exportMWL());
+//        Button exportBtn = new Button("Exporter MWL", VaadinIcon.DOWNLOAD.create());
+//        exportBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+//        exportBtn.getStyle()
+//                .set("background", "rgba(255,255,255,0.2)")
+//                .set("color", "white");
+//        exportBtn.addClickListener(e -> exportMWL());
 
         // Bouton envoyer à Orthanc
         Button sendToOrthancBtn = new Button("Envoyer à MWL", VaadinIcon.PLAY.create());
-        sendToOrthancBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+        sendToOrthancBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         sendToOrthancBtn.getStyle()
-                .set("background", "rgba(255,255,255,0.2)")
-                .set("color", "white");
+                .set("background", "#7f1d1d !important")
+                .set("color", "white !important")
+                .set("border", "none !important");
         sendToOrthancBtn.addClickListener(e -> sendToOrthanc());
 
-        header.add(titleLayout, plannedCount, inProgressCount, refreshBtn, exportBtn, sendToOrthancBtn);
+        header.add(titleLayout, plannedCount, inProgressCount, refreshBtn, sendToOrthancBtn);
         header.setFlexGrow(1, titleLayout);
         header.setFlexGrow(0, plannedCount);
         header.setFlexGrow(0, inProgressCount);
@@ -191,13 +192,13 @@ public class WorklistDragDropView extends VerticalLayout {
         leftHeader.setSpacing(true);
         leftHeader.setAlignItems(Alignment.CENTER);
         leftHeader.getStyle()
-                .set("background-color", "#f8fafc")
-                .set("border-bottom", "2px solid #e2e8f0");
+                .set("background-color", "#f5f5f5")
+                .set("border-bottom", "2px solid #6b7280");
 
         H3 leftTitle = new H3(" Examens en Attente");
         leftTitle.getStyle()
                 .set("margin", "0")
-                .set("color", "#334155");
+                .set("color", "#374151");
 
         // Barre de recherche
         searchField.setPlaceholder("Rechercher un patient, modalité...");
@@ -217,7 +218,7 @@ public class WorklistDragDropView extends VerticalLayout {
         Scroller leftScroller = new Scroller(leftCardsContainer);
         leftScroller.setSizeFull();
         leftScroller.getStyle()
-                .set("background-color", "#f8fafc")
+                .set("background-color", "#f5f5f5")
                 .set("padding", "1rem");
 
         leftLayout.add(leftHeader, leftScroller);
@@ -235,13 +236,13 @@ public class WorklistDragDropView extends VerticalLayout {
         rightHeader.setSpacing(true);
         rightHeader.setAlignItems(Alignment.CENTER);
         rightHeader.getStyle()
-                .set("background-color", "#ecfdf5")
+                .set("background-color", "#f5f5f5")
                 .set("border-bottom", "2px solid #10b981");
 
         H3 rightTitle = new H3(" Examens a envoye vers MWL");
         rightTitle.getStyle()
                 .set("margin", "0")
-                .set("color", "#065f46");
+                .set("color", "#374151");
 
         Span activeBadge = new Span(String.valueOf(rightGrid.getListDataView().getItemCount()));
         activeBadge.getStyle()
@@ -263,7 +264,7 @@ public class WorklistDragDropView extends VerticalLayout {
         Div rightGridContainer = new Div(rightGrid);
         rightGridContainer.setSizeFull();
         rightGridContainer.getStyle()
-                .set("background-color", "#f0fdf4")
+                .set("background-color", "#f5f5f5")
                 .set("padding", "1rem");
 
         rightLayout.add(rightHeader, rightGridContainer);
@@ -289,7 +290,7 @@ public class WorklistDragDropView extends VerticalLayout {
         card.getStyle()
                 .set("cursor", "grab")
                 .set("transition", "all 0.3s ease")
-                .set("border", "1px solid #e2e8f0")
+                .set("border", "1px solid #6b7280")
                 .set("border-radius", "12px")
                 .set("box-shadow", "0 2px 4px rgba(0,0,0,0.05)")
                 .set("background", "white");
@@ -318,14 +319,14 @@ public class WorklistDragDropView extends VerticalLayout {
 
         Icon modalityIcon = getModalityIcon(exam.getModality());
         modalityIcon.setSize("24px");
-        modalityIcon.getStyle().set("color", "#667eea");
+        modalityIcon.getStyle().set("color", "#374151");
 
         Span patientName = new Span(exam.getPatient() != null ?
                 exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName() : "N/A");
         patientName.getStyle()
                 .set("font-weight", "700")
                 .set("font-size", "16px")
-                .set("color", "#1e293b");
+                .set("color", "#374151");
 
         cardHeader.add(modalityIcon, patientName);
         cardHeader.setFlexGrow(1, patientName);
@@ -348,7 +349,7 @@ public class WorklistDragDropView extends VerticalLayout {
         if (exam.getPriority() != null && exam.getPriority() != Priority.NORMAL) {
             Span priorityBadge = new Span(exam.getPriority().toString());
             priorityBadge.getStyle()
-                    .set("background-color", exam.getPriority() == Priority.URGENT ? "#ef4444" : "#f59e0b")
+                    .set("background-color", exam.getPriority() == Priority.URGENT ? "#7f1d1d" : "#374151")
                     .set("color", "white")
                     .set("font-size", "11px")
                     .set("padding", "0.25rem 0.5rem")
@@ -367,7 +368,7 @@ public class WorklistDragDropView extends VerticalLayout {
         addBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
         addBtn.setWidth("20%");
         addBtn.getStyle()
-                .set("background", "linear-gradient(135deg, #667eea 0%, #764ba2 100%)")
+                .set("background", "linear-gradient(135deg, #10b981 0%, #059669 100%)")
                 .set("border", "none");
         addBtn.addClickListener(e -> addToWorklist(exam));
 
@@ -424,7 +425,7 @@ public class WorklistDragDropView extends VerticalLayout {
         Span emojiSpan = new Span(emoji);
         Span labelSpan = new Span(label + ":");
         labelSpan.getStyle()
-                .set("color", "#64748b")
+                .set("color", "#6b7280")
                 .set("font-weight", "500");
         Span valueSpan = new Span(value);
         valueSpan.getStyle()
@@ -626,12 +627,12 @@ public class WorklistDragDropView extends VerticalLayout {
                 .set("display", "flex")
                 .set("justify-content", "space-between")
                 .set("padding", "0.75rem")
-                .set("border-bottom", "1px solid #e2e8f0");
+                .set("border-bottom", "1px solid #6b7280");
 
         Span labelSpan = new Span(label + ":");
         labelSpan.getStyle()
                 .set("font-weight", "600")
-                .set("color", "#64748b");
+                .set("color", "#6b7280");
 
         Span valueSpan = new Span(value);
         valueSpan.getStyle()
@@ -704,13 +705,13 @@ public class WorklistDragDropView extends VerticalLayout {
             emptyState.getStyle()
                     .set("text-align", "center")
                     .set("padding", "4rem 2rem")
-                    .set("color", "#94a3b8");
+                    .set("color", "#6b7280");
 
             Icon emptyIcon = VaadinIcon.INBOX.create();
             emptyIcon.setSize("64px");
 
             H3 emptyTitle = new H3("Aucun examen en attente");
-            emptyTitle.getStyle().set("color", "#64748b");
+            emptyTitle.getStyle().set("color", "#6b7280");
 
             emptyState.add(emptyIcon, emptyTitle);
             leftCardsContainer.add(emptyState);

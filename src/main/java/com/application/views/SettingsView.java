@@ -494,12 +494,12 @@ public class SettingsView extends VerticalLayout {
         try {
             boolean isRunning = mwlService.isRunning();
             mwlStatusBadge.setText(isRunning ? "Actif" : "Arrêté");
-            mwlStatusBadge.getStyle().set("background-color", isRunning ? "#e8f5e8" : "#ffebee");
-            mwlStatusBadge.getStyle().set("color", isRunning ? "#388e3c" : "#d32f2f");
+            mwlStatusBadge.getStyle().set("background-color", isRunning ? "#f5f5f5" : "#7f1d1d");
+            mwlStatusBadge.getStyle().set("color", isRunning ? "#10b981" : "white");
         } catch (Exception e) {
             mwlStatusBadge.setText("Erreur");
-            mwlStatusBadge.getStyle().set("background-color", "#f57c00");
-            mwlStatusBadge.getStyle().set("color", "#d32f2f");
+            mwlStatusBadge.getStyle().set("background-color", "#6b7280");
+            mwlStatusBadge.getStyle().set("color", "white");
         }
     }
 

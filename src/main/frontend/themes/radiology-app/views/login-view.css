@@ -5,24 +5,24 @@
   position: relative;
   height: 100%;
   overflow-y: auto;
-  --cv-blue: 212 96% 54%;
-  --cv-purple: 259 97% 66%;
-  --cv-dropzone-border-color: hsl(var(--cv-blue) / 0.5);
-  --cv-dropzone-bg-color: hsl(var(--cv-blue) / 0.2);
-  --cv-droptarget-border-color: hsl(var(--cv-purple) / 1);
-  --cv-droptarget-bg-color: hsl(var(--cv-purple) / 0.4);
+  --cv-green: 142 71% 45%;
+  --cv-gray: 220 9% 46%;
+  --cv-dropzone-border-color: hsl(var(--cv-green) / 0.5);
+  --cv-dropzone-bg-color: hsl(var(--cv-green) / 0.2);
+  --cv-droptarget-border-color: hsl(var(--cv-gray) / 1);
+  --cv-droptarget-bg-color: hsl(var(--cv-gray) / 0.4);
   --cv-stripe-width: 1.5px;
   --cv-stripe-gap: 9px;
-  --cv-stripe-color: hsl(var(--cv-blue) / 0.2);
+  --cv-stripe-color: hsl(var(--cv-green) / 0.2);
   --cv-layout-border-color: var(--lumo-contrast-40pct);
-  --cv-checkerboard-color1: hsl(0 0% 0% / 0.05);
+  --cv-checkerboard-color1: hsl(var(--cv-green) / 0.05);
   --cv-checkerboard-color2: hsl(0 0% 100% / 0.05);
   --cv-checkerboard-size: 16px;
 }
 
 .login-view[dragging] {
-  --cv-checkerboard-color1: hsl(var(--cv-blue) / 0.2);
-  --cv-checkerboard-color2: hsl(var(--cv-blue) / 0.1);
+  --cv-checkerboard-color1: hsl(var(--cv-green) / 0.2);
+  --cv-checkerboard-color2: hsl(var(--cv-green) / 0.1);
   --cv-layout-border-color: var(--cv-dropzone-border-color);
 }
 
@@ -53,12 +53,12 @@
 }
 
 .login-view:not([starting-drag]) .cover-overlay.editable-hovering {
-  outline: 2px solid hsl(var(--cv-blue) / 1);
+  outline: 2px solid hsl(var(--cv-green) / 1);
   outline-offset: -1px;
 }
 
 .login-view:not([starting-drag]) .cover-overlay.editable-editing {
-  outline: 1px solid hsl(var(--cv-blue) / 1);
+  outline: 1px solid hsl(var(--cv-green) / 1);
   outline-offset: -1px;
   box-shadow: inset 0 0 0 2px var(--lumo-base-color);
 }

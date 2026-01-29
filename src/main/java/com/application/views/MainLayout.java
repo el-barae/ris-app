@@ -301,22 +301,22 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         Icon icon;
         if ("IN_PROGRESS".equals(status)) {
             icon = VaadinIcon.PLAY_CIRCLE.create();
-            icon.setColor("#3b82f6");
+            icon.setColor("#6b7280");
         } else if ("COMPLETED".equals(status)) {
             icon = VaadinIcon.CHECK_CIRCLE.create();
             icon.setColor("#10b981");
         } else {
             icon = VaadinIcon.CLOSE_CIRCLE.create();
-            icon.setColor("#ef4444");
+            icon.setColor("#7f1d1d");
         }
         return icon;
     }
 
     private String getStatusColor(String status) {
         switch (status) {
-            case "IN_PROGRESS": return "#3b82f6";
+            case "IN_PROGRESS": return "#6b7280";
             case "COMPLETED": return "#10b981";
-            case "CANCELLED": return "#ef4444";
+            case "CANCELLED": return "#7f1d1d";
             default: return "#6b7280";
         }
     }
@@ -367,7 +367,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         Icon hospitalIcon = VaadinIcon.HOSPITAL.create();
         hospitalIcon.getStyle().set("color", "white");
         title.add(hospitalIcon);
-        title.add(" RIS Sahty");
+        title.add("   RIS Sahty");
         title.addClassNames("text-truncate", "m-0");
         title.getStyle()
                 .set("color", "white")
@@ -418,7 +418,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         drawerLayout.setPadding(false);
         drawerLayout.setSpacing(false);
         drawerLayout.getStyle()
-                .set("background-color", "#f8fafc")
+                .set("background-color", "#f5f5f5")
                 .set("padding-top", "1rem");
 
         HorizontalLayout drawerHeader = new HorizontalLayout();
@@ -426,17 +426,17 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         drawerHeader.setPadding(true);
         drawerHeader.setSpacing(true);
         drawerHeader.getStyle()
-                .set("border-bottom", "2px solid #e2e8f0")
+                .set("border-bottom", "2px solid #6b7280")
                 .set("margin-bottom", "1rem");
 
         Icon menuIcon = VaadinIcon.MENU.create();
         menuIcon.setSize("24px");
-        menuIcon.getStyle().set("color", "#667eea");
+        menuIcon.getStyle().set("color", "#10b981");
 
         H3 drawerTitle = new H3("Menu");
         drawerTitle.getStyle()
                 .set("margin", "0")
-                .set("color", "#1e293b")
+                .set("color", "#374151")
                 .set("font-size", "1.2rem");
 
         drawerHeader.add(menuIcon, drawerTitle);
@@ -488,11 +488,11 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
 
         Icon tabIcon = icon.create();
         tabIcon.setSize("20px");
-        tabIcon.getStyle().set("color", "#64748b");
+        tabIcon.getStyle().set("color", "#6b7280");
 
         Span tabLabel = new Span(label);
         tabLabel.getStyle()
-                .set("color", "#334155")
+                .set("color", "#374151")
                 .set("font-weight", "500")
                 .set("font-size", "14px");
 
@@ -501,7 +501,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
 
         tabContent.getElement().executeJs(
                 "this.addEventListener('mouseenter', () => {" +
-                        "  this.style.backgroundColor = '#e0e7ff';" +
+                        "  this.style.backgroundColor = '#f5f5f5';" +
                         "  this.style.transform = 'translateX(4px)';" +
                         "});" +
                         "this.addEventListener('mouseleave', () => {" +

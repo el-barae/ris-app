@@ -3,7 +3,6 @@ import { webcomponentGlobalCssInjector } from 'Frontend/generated/jar-resources/
 import './theme-radiology-app.components.generated.js';
 let needsReloadOnChanges = false;
 import lumoUtil from '@vaadin/vaadin-lumo-styles/utility.css?inline';
-import stylesCss from 'themes/radiology-app/styles.css?inline';
 if(!document.getElementById("lumoUtil")) {
       const styleTag = document.createElement('style');
       styleTag.type = 'text/css';
@@ -19,7 +18,6 @@ if(!document.getElementById("lumoUtil")) {
     const removers = [];
     if (target !== document) {
       removers.push(injectGlobalCss(lumoUtil.toString(), '', target));
-    removers.push(injectGlobalCss(stylesCss.toString(), '', target));
     
       
         webcomponentGlobalCssInjector((css) => {

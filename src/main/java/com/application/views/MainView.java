@@ -41,12 +41,12 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         title.add(VaadinIcon.HOSPITAL.create());
         title.add(" RIS Sahty");
         title.getStyle()
-                .set("color", "#3b82f6")
+                .set("color", "#10b981")
                 .set("margin-bottom", "1rem");
 
         Paragraph message = new Paragraph("Redirection en cours...");
         message.getStyle()
-                .set("color", "#64748b")
+                .set("color", "#6b7280")
                 .set("font-size", "16px");
 
         loadingContainer.add(title, message);

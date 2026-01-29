@@ -84,7 +84,7 @@ public class ReportView extends VerticalLayout {
         setSizeFull();
         setPadding(false);
         setSpacing(false);
-        getStyle().set("background-color", "#f3f4f6");
+        getStyle().set("background-color", "#f5f5f5");
         addClassName("report-view");
 
         add(createStyledHeader());
@@ -225,7 +225,7 @@ public class ReportView extends VerticalLayout {
     private Button createFilterChip(String label, ExamStatus status) {
         Button btn = new Button(label);
         btn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
-        btn.getStyle().set("border-radius", "20px").set("border", "1px solid #e5e7eb");
+        btn.getStyle().set("border-radius", "20px").set("border", "1px solid #6b7280");
         btn.addClickListener(e -> filterByStatus(status));
         return btn;
     }

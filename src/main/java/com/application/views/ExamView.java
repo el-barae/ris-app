@@ -150,7 +150,10 @@ public class ExamView extends VerticalLayout {
                 .set("font-size", "14px");
 
         Button newExamBtn = new Button("Nouvel Examen", VaadinIcon.PLUS.create());
-        newExamBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+        newExamBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        newExamBtn.getStyle()
+                .set("background", "#7f1d1d")
+                .set("border", "none");
         newExamBtn.addClickListener(e -> openExamForm(null));
 
         header.add(titleLayout, examCountBadge);

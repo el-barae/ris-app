@@ -82,12 +82,12 @@ public class SchedulingView extends VerticalLayout {
         refreshBtn.addClickListener(e -> refreshExamList());
 
         Button calendarBtn = new Button("Calendrier", VaadinIcon.CALENDAR.create());
-        calendarBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_CONTRAST);
+        calendarBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         calendarBtn.getStyle()
-                .set("background", "rgba(255,255,255,0.3)")
-                .set("color", "white")
+                .set("background", "#7f1d1d !important")
+                .set("color", "white !important")
                 .set("font-weight", "bold")
-                .set("border", "2px solid rgba(255,255,255,0.5)");
+                .set("border", "none !important");
         calendarBtn.addClickListener(e -> {
             Notification.show("Ouverture du calendrier...", 2000, Notification.Position.TOP_CENTER)
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);

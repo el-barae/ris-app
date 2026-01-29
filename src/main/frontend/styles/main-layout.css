@@ -2,7 +2,7 @@
 
 /* Header principal */
 vaadin-app-layout::part(navbar) {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
@@ -24,7 +24,7 @@ vaadin-app-layout::part(navbar)::before {
 
 /* Styles pour le header container */
 .main-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
     padding: 0 var(--lumo-space-l);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -109,7 +109,7 @@ vaadin-app-layout::part(navbar)::before {
 
 /* Avatar utilisateur */
 .user-section vaadin-avatar {
-    background: linear-gradient(135deg, #ff6b6b, #feca57);
+    background: linear-gradient(135deg, #10b981, #6b7280);
     border: 2px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -123,7 +123,7 @@ vaadin-app-layout::part(navbar)::before {
 
 /* Bouton déconnexion */
 .main-header .logout-button {
-    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    background: linear-gradient(135deg, #7f1d1d, #991b1b);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
     border-radius: var(--lumo-border-radius-m);
@@ -134,9 +134,9 @@ vaadin-app-layout::part(navbar)::before {
 }
 
 .main-header .logout-button:hover {
-    background: linear-gradient(135deg, #ff5252, #d63031);
+    background: linear-gradient(135deg, #991b1b, #7f1d1d);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+    box-shadow: 0 4px 12px rgba(127, 29, 29, 0.3);
 }
 
 .main-header .logout-button:active {
@@ -145,8 +145,8 @@ vaadin-app-layout::part(navbar)::before {
 
 /* Drawer styles */
 vaadin-app-layout::part(drawer) {
-    background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
-    border-right: 1px solid var(--lumo-contrast-20pct);
+    background: linear-gradient(180deg, #f5f5f5 0%, #e5e7eb 100%);
+    border-right: 1px solid #6b7280;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
 }
 
@@ -163,14 +163,14 @@ vaadin-tab {
 }
 
 vaadin-tab:hover {
-    background: rgba(102, 126, 234, 0.1);
+    background: rgba(127, 29, 29, 0.1);
     transform: translateX(4px);
 }
 
 vaadin-tab[selected] {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 vaadin-tab[selected]:hover {
@@ -190,12 +190,21 @@ vaadin-tab[selected] span {
 }
 
 vaadin-tab vaadin-icon {
-    color: var(--lumo-primary-color);
+    color: #6b7280;
     transition: all 0.3s ease;
 }
 
 vaadin-tab[selected] vaadin-icon {
     color: white;
+}
+
+/* Hover styles for tab content */
+vaadin-tab:hover span {
+    color: #7f1d1d;
+}
+
+vaadin-tab:hover vaadin-icon {
+    color: #7f1d1d;
 }
 
 /* Cartes statistiques */
@@ -224,39 +233,39 @@ vaadin-tab[selected] vaadin-icon {
 }
 
 .badge-planned {
-    background-color: #e3f2fd;
-    color: #1976d2;
+    background-color: #f5f5f5;
+    color: #6b7280;
 }
 
 .badge-in-progress {
-    background-color: #fff3e0;
-    color: #f57c00;
+    background-color: #f5f5f5;
+    color: #6b7280;
 }
 
 .badge-completed {
-    background-color: #e8f5e8;
-    color: #388e3c;
+    background-color: #f5f5f5;
+    color: #10b981;
 }
 
 .badge-cancelled {
-    background-color: #ffebee;
-    color: #d32f2f;
+    background-color: #f5f5f5;
+    color: #7f1d1d;
 }
 
 /* Badges de priorité */
 .badge-normal {
-    background-color: #f8f9fa;
-    color: #6c757d;
+    background-color: #f5f5f5;
+    color: #6b7280;
 }
 
 .badge-urgent {
-    background-color: #fff3cd;
-    color: #856404;
+    background-color: #f5f5f5;
+    color: #7f1d1d;
 }
 
 .badge-critical {
-    background-color: #f8d7da;
-    color: #721c24;
+    background-color: #f5f5f5;
+    color: #7f1d1d;
 }
 
 /* Dialogs */
