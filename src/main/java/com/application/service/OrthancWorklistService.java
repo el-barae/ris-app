@@ -92,6 +92,8 @@ public class OrthancWorklistService {
         // Scheduled procedure step
         Map<String, Object> procedureStep = new HashMap<>();
         procedureStep.put("Modality", exam.getModality());
+
+        procedureStep.put("ScheduledStationAETitle", exam.getModality()+'1');
         
         // Utiliser la procédure et les instructions additionnelles pour la description
         String description = "";

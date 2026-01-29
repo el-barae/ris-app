@@ -1,4 +1,4 @@
-package com.application.controller;
+package com.application.config;
 
 import com.application.service.PatientDataCleanupService;
 import org.springframework.beans.factory.annotation.Autowired;
