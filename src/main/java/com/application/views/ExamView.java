@@ -7,7 +7,6 @@ import com.application.repository.PatientRepository;
 import com.application.repository.ProcedureCatalogRepository;
 import com.application.repository.UserRepository;
 import com.application.views.dialog.PatientDialog;
-import com.application.views.calendar.ExamCalendarView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -83,7 +82,6 @@ public class ExamView extends VerticalLayout {
     private Button resetButton = new Button("Réinitialiser");
 
     private Exam selectedExam;
-    private ExamCalendarView examCalendar;
 
     public ExamView(PatientRepository patientRepo, ExamRepository examRepo, UserRepository userRepo, ProcedureCatalogRepository procedureRepo, ModalityTypeRepository modalityRepo) {
         this.patientRepo = patientRepo;
@@ -95,9 +93,6 @@ public class ExamView extends VerticalLayout {
         setSizeFull();
         setPadding(false);
         setSpacing(false);
-
-        // Initialiser le calendrier
-        examCalendar = new ExamCalendarView(examRepo);
 
         // Construction de l'interface
         add(
@@ -118,7 +113,7 @@ public class ExamView extends VerticalLayout {
         header.setSpacing(true);
         header.setAlignItems(Alignment.CENTER);
         header.getStyle()
-                .set("background", "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)")
+                .set("background", "linear-gradient(135deg, #10b981 0%, #059669 100%)")
                 .set("color", "white")
                 .set("box-shadow", "0 4px 6px rgba(0,0,0,0.1)")
                 .set("border-radius", "0 0 16px 16px")
@@ -154,21 +149,13 @@ public class ExamView extends VerticalLayout {
                 .set("font-weight", "600")
                 .set("font-size", "14px");
 
-        // Boutons
-        Button calendarBtn = new Button("Calendrier", VaadinIcon.CALENDAR.create());
-        calendarBtn.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
-        calendarBtn.getStyle()
-                .set("background", "rgba(255,255,255,0.2)")
-                .set("color", "white");
-        calendarBtn.addClickListener(e -> examCalendar.show());
-
         Button newExamBtn = new Button("Nouvel Examen", VaadinIcon.PLUS.create());
         newExamBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         newExamBtn.addClickListener(e -> openExamForm(null));
 
         header.add(titleLayout, examCountBadge);
         header.setFlexGrow(1, titleLayout);
-        header.add(calendarBtn, newExamBtn);
+        header.add(newExamBtn);
 
         return header;
     }
@@ -401,8 +388,8 @@ public class ExamView extends VerticalLayout {
 
     private void openExamForm(Exam exam) {
         Dialog dialog = new Dialog();
-        dialog.setWidth("800px");
-        dialog.setHeight("90vh");
+        dialog.setWidth("1200px");
+        dialog.setHeight("95vh");
 
         boolean isEdit = exam != null;
         selectedExam = exam;
@@ -460,6 +447,26 @@ public class ExamView extends VerticalLayout {
         section2.setColspan(procedureSelector, 2);
         section2.setColspan(procedureName, 2);
 
+        // Section détails de la procédure sélectionnée
+        Div procedureDetails = new Div();
+        procedureDetails.setWidthFull();
+        procedureDetails.getStyle()
+                .set("background", "#f8f9fa")
+                .set("border", "1px solid #dee2e6")
+                .set("border-radius", "8px")
+                .set("padding", "1rem")
+                .set("margin-top", "1rem")
+                .set("display", "none");
+        
+        procedureSelector.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                updateProcedureDetails(procedureDetails, e.getValue());
+                procedureDetails.getStyle().set("display", "block");
+            } else {
+                procedureDetails.getStyle().set("display", "none");
+            }
+        });
+
         // Section 3: Contraste
         FormLayout section3 = new FormLayout();
         section3.setResponsiveSteps(
@@ -485,6 +492,7 @@ public class ExamView extends VerticalLayout {
                 new Hr(),
                 createSectionTitle("Détails de l'Examen"),
                 section2,
+                procedureDetails,
                 new Hr(),
                 createSectionTitle("Injection de Contraste"),
                 section3,
@@ -568,10 +576,36 @@ public class ExamView extends VerticalLayout {
     private void configureProcedureFields() {
         procedureSelector.setItems(procedureRepo.findAllWithModality());
         procedureSelector.setItemLabelGenerator(procedure -> {
-            StringBuilder label = new StringBuilder(procedure.getName());
-            if (procedure.getRegion() != null) {
-                label.append(" (" + procedure.getRegion() + ")");
+            StringBuilder label = new StringBuilder();
+            
+            // Nom de la procédure
+            label.append(procedure.getName());
+            
+            // Code de procédure
+            if (procedure.getProcedureCode() != null && !procedure.getProcedureCode().isEmpty()) {
+                label.append(" [").append(procedure.getProcedureCode()).append("]");
             }
+            
+            // Région anatomique
+            if (procedure.getRegion() != null && !procedure.getRegion().isEmpty()) {
+                label.append(" - ").append(procedure.getRegion());
+            }
+            
+            // Modalité
+            if (procedure.getModalityType() != null) {
+                label.append(" (").append(procedure.getModalityType().getCode()).append(")");
+            }
+            
+            // Contraste requis
+            if (Boolean.TRUE.equals(procedure.getContrastRequired())) {
+                label.append(" ⚡");
+            }
+            
+            // Latéralité si applicable
+            if (procedure.getLaterality() != null && !procedure.getLaterality().equals("N/A")) {
+                label.append(" [").append(procedure.getLaterality()).append("]");
+            }
+            
             return label.toString();
         });
         procedureSelector.setPlaceholder("Sélectionner une procédure");
@@ -1069,5 +1103,117 @@ public class ExamView extends VerticalLayout {
         dialog.add(content);
         dialog.getFooter().add(buttons);
         dialog.open();
+    }
+
+    private void updateProcedureDetails(Div detailsContainer, ProcedureCatalog procedure) {
+        detailsContainer.removeAll();
+        
+        VerticalLayout content = new VerticalLayout();
+        content.setSpacing(false);
+        content.setPadding(false);
+        
+        // Titre
+        H4 title = new H4("Détails de la procédure sélectionnée");
+        title.getStyle().set("margin", "0 0 1rem 0").set("color", "#495057");
+        
+        // Informations principales
+        HorizontalLayout infoRow = new HorizontalLayout();
+        infoRow.setWidthFull();
+        infoRow.setSpacing(true);
+        
+        // Code et nom
+        VerticalLayout codeNameCol = new VerticalLayout();
+        codeNameCol.setSpacing(false);
+        codeNameCol.setPadding(false);
+        
+        Span codeLabel = new Span("Code:");
+        codeLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+        Span codeValue = new Span(procedure.getProcedureCode() != null ? procedure.getProcedureCode() : "N/A");
+        codeValue.getStyle().set("font-weight", "500");
+        
+        Span nameLabel = new Span("Nom:");
+        nameLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+        Span nameValue = new Span(procedure.getName());
+        nameValue.getStyle().set("font-weight", "500");
+        
+        codeNameCol.add(codeLabel, codeValue, nameLabel, nameValue);
+        
+        // Modalité et région
+        VerticalLayout modalityRegionCol = new VerticalLayout();
+        modalityRegionCol.setSpacing(false);
+        modalityRegionCol.setPadding(false);
+        
+        Span modalityLabel = new Span("Modalité:");
+        modalityLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+        Span modalityValue = new Span(procedure.getModalityType() != null ? 
+                procedure.getModalityType().getCode() + " - " + procedure.getModalityType().getName() : "N/A");
+        modalityValue.getStyle().set("font-weight", "500");
+        
+        Span regionLabel = new Span("Région:");
+        regionLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+        Span regionValue = new Span(procedure.getRegion() != null ? procedure.getRegion() : "N/A");
+        regionValue.getStyle().set("font-weight", "500");
+        
+        modalityRegionCol.add(modalityLabel, modalityValue, regionLabel, regionValue);
+        
+        // Latéralité et contraste
+        VerticalLayout lateralContrastCol = new VerticalLayout();
+        lateralContrastCol.setSpacing(false);
+        lateralContrastCol.setPadding(false);
+        
+        Span lateralLabel = new Span("Latéralité:");
+        lateralLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+        Span lateralValue = new Span(procedure.getLaterality() != null ? procedure.getLaterality() : "N/A");
+        lateralValue.getStyle().set("font-weight", "500");
+        
+        Span contrastLabel = new Span("Contraste:");
+        contrastLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+        Span contrastValue = new Span(Boolean.TRUE.equals(procedure.getContrastRequired()) ? 
+                "Oui ⚡" : "Non");
+        contrastValue.getStyle().set("font-weight", "500");
+        
+        lateralContrastCol.add(lateralLabel, lateralValue, contrastLabel, contrastValue);
+        
+        infoRow.add(codeNameCol, modalityRegionCol, lateralContrastCol);
+        infoRow.setFlexGrow(1, codeNameCol);
+        infoRow.setFlexGrow(1, modalityRegionCol);
+        infoRow.setFlexGrow(1, lateralContrastCol);
+        
+        // Détails du contraste (si applicable)
+        if (Boolean.TRUE.equals(procedure.getContrastRequired())) {
+            HorizontalLayout contrastDetailsRow = new HorizontalLayout();
+            contrastDetailsRow.setWidthFull();
+            contrastDetailsRow.setSpacing(true);
+            contrastDetailsRow.getStyle()
+                    .set("background", "#fff3cd")
+                    .set("border", "1px solid #ffeaa7")
+                    .set("border-radius", "4px")
+                    .set("padding", "0.75rem")
+                    .set("margin-top", "0.5rem");
+            
+            Span contrastTitle = new Span("Détails du contraste:");
+            contrastTitle.getStyle().set("font-weight", "600").set("color", "#856404");
+            
+            Span typeInfo = new Span("Type: " + (procedure.getContrastType() != null ? procedure.getContrastType() : "Non spécifié"));
+            Span rateInfo = new Span("Débit: " + (procedure.getInjectionRate() != null ? procedure.getInjectionRate() + " ml/s" : "Non spécifié"));
+            Span volumeInfo = new Span("Volume: " + (procedure.getContrastVolume() != null ? procedure.getContrastVolume() + " ml" : "Non spécifié"));
+            
+            contrastDetailsRow.add(contrastTitle, typeInfo, rateInfo, volumeInfo);
+            contrastDetailsRow.setFlexGrow(1, contrastTitle);
+            content.add(contrastDetailsRow);
+        }
+        
+        // Description (si disponible)
+        if (procedure.getDescription() != null && !procedure.getDescription().trim().isEmpty()) {
+            Span descLabel = new Span("Description:");
+            descLabel.getStyle().set("font-weight", "600").set("color", "#6c757d").set("display", "block");
+            Span descValue = new Span(procedure.getDescription());
+            descValue.getStyle().set("font-style", "italic").set("color", "#495057");
+            
+            content.add(descLabel, descValue);
+        }
+        
+        content.add(title, infoRow);
+        detailsContainer.add(content);
     }
 }

@@ -39,7 +39,7 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
 
         H2 title = new H2();
         title.add(VaadinIcon.HOSPITAL.create());
-        title.add(" RIS Radiologie");
+        title.add(" RIS Sahty");
         title.getStyle()
                 .set("color", "#3b82f6")
                 .set("margin-bottom", "1rem");

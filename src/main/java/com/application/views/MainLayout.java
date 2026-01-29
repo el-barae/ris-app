@@ -349,7 +349,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         header.setWidthFull();
         header.addClassNames("main-header", "px-m", "py-xs");
         header.getStyle()
-                .set("background", "linear-gradient(135deg, #667eea 0%, #764ba2 100%)")
+                .set("background", "linear-gradient(135deg, #10b981 0%, #059669 100%)")
                 .set("color", "white")
                 .set("box-shadow", "0 2px 8px rgba(0,0,0,0.1)")
                 .set("min-height", "60px");
@@ -367,7 +367,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         Icon hospitalIcon = VaadinIcon.HOSPITAL.create();
         hospitalIcon.getStyle().set("color", "white");
         title.add(hospitalIcon);
-        title.add(" RIS Radiologie");
+        title.add(" RIS Sahty");
         title.addClassNames("text-truncate", "m-0");
         title.getStyle()
                 .set("color", "white")

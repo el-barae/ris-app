@@ -102,7 +102,7 @@ public class WorklistDragDropView extends VerticalLayout {
         header.setSpacing(true);
         header.setAlignItems(Alignment.CENTER);
         header.getStyle()
-                .set("background", "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)")
+                .set("background", "linear-gradient(135deg, #10b981 0%, #059669 100%)")
                 .set("color", "white")
                 .set("box-shadow", "0 4px 6px rgba(0,0,0,0.1)")
                 .set("border-radius", "0 0 16px 16px");

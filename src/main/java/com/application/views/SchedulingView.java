@@ -2,10 +2,14 @@ package com.application.views;
 
 import com.application.entity.Exam;
 import com.application.entity.ExamStatus;
+import com.application.entity.ModalityType;
 import com.application.repository.ExamRepository;
+import com.application.repository.ModalityTypeRepository;
+import com.application.views.calendar.ExamCalendarView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.component.grid.Grid;
@@ -30,10 +34,16 @@ import java.util.List;
 public class SchedulingView extends VerticalLayout {
 
     private final ExamRepository examRepo;
+    private final ModalityTypeRepository modalityTypeRepo;
     private final Grid<Exam> examGrid = new Grid<>(Exam.class);
+    private ExamCalendarView examCalendar;
 
-    public SchedulingView(ExamRepository examRepo) {
+    public SchedulingView(ExamRepository examRepo, ModalityTypeRepository modalityTypeRepo) {
         this.examRepo = examRepo;
+        this.modalityTypeRepo = modalityTypeRepo;
+        
+        // Initialize calendar
+        examCalendar = new ExamCalendarView(examRepo);
         
         setSizeFull();
         setPadding(false);
@@ -71,7 +81,20 @@ public class SchedulingView extends VerticalLayout {
                 .set("color", "white");
         refreshBtn.addClickListener(e -> refreshExamList());
 
-        header.add(title, refreshBtn);
+        Button calendarBtn = new Button("Calendrier", VaadinIcon.CALENDAR.create());
+        calendarBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_CONTRAST);
+        calendarBtn.getStyle()
+                .set("background", "rgba(255,255,255,0.3)")
+                .set("color", "white")
+                .set("font-weight", "bold")
+                .set("border", "2px solid rgba(255,255,255,0.5)");
+        calendarBtn.addClickListener(e -> {
+            Notification.show("Ouverture du calendrier...", 2000, Notification.Position.TOP_CENTER)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            examCalendar.show();
+        });
+
+        header.add(title, refreshBtn, calendarBtn);
         header.setFlexGrow(1, title);
 
         return header;
@@ -184,8 +207,21 @@ public class SchedulingView extends VerticalLayout {
         // Afficher les informations de l'examen
         content.add(new Span("Patient: " + (exam.getPatient() != null ? 
             exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName() : "N/A")));
-        content.add(new Span("Modalité: " + exam.getModality()));
         content.add(new Span("Accession: " + exam.getAccessionNumber()));
+        
+        // Sélecteur de modalité
+        ComboBox<ModalityType> modalitySelector = new ComboBox<>("Modalité");
+        modalitySelector.setItems(modalityTypeRepo.findAllActiveOrdered());
+        modalitySelector.setItemLabelGenerator(modality -> modality.getCode() + " - " + modality.getName());
+        modalitySelector.setPlaceholder("Sélectionner une modalité");
+        modalitySelector.setWidthFull();
+        
+        // Pré-sélectionner la modalité actuelle si elle existe
+        if (exam.getModality() != null) {
+            modalityTypeRepo.findByCode(exam.getModality()).ifPresent(modalitySelector::setValue);
+        }
+        
+        content.add(modalitySelector);
         
         // DateTimePicker pour la date
         DateTimePicker dateTimePicker = new DateTimePicker("Date et heure programmée");
@@ -200,22 +236,29 @@ public class SchedulingView extends VerticalLayout {
         dialog.setConfirmButtonTheme("primary");
         
         dialog.addConfirmListener(e -> {
-            if (dateTimePicker.getValue() != null) {
+            if (dateTimePicker.getValue() != null && modalitySelector.getValue() != null) {
                 exam.setScheduledDateTime(dateTimePicker.getValue());
+                exam.setModality(modalitySelector.getValue().getCode());
                 exam.setStatus(ExamStatus.PLANNED);
                 examRepo.save(exam);
                 
                 Notification.show(
                     "Examen planifié avec succès pour le " + 
-                    dateTimePicker.getValue().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
+                    dateTimePicker.getValue().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
+                    " avec la modalité " + modalitySelector.getValue().getCode(),
                     3000,
                     Notification.Position.BOTTOM_END
                 ).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                 
                 refreshExamList();
             } else {
-                Notification.show("Veuillez sélectionner une date et heure", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                if (modalitySelector.getValue() == null) {
+                    Notification.show("Veuillez sélectionner une modalité", 3000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                } else {
+                    Notification.show("Veuillez sélectionner une date et heure", 3000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                }
             }
         });
         

@@ -47,10 +47,10 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         // Titre
         H1 title = new H1();
         title.add(VaadinIcon.HOSPITAL.create());
-        title.add(" Système RIS");
+        title.add(" RIS Sahty");
         title.addClassNames("text-center", "mb-m");
 
-        H3 subtitle = new H3("Radiologie - Connexion");
+        H3 subtitle = new H3("Connexion");
         subtitle.addClassNames("text-center", "mb-l");
 
         loginForm.setAction("login");
