@@ -450,10 +450,26 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
 
         tabs.add(createTab("Dashboard", VaadinIcon.DASHBOARD, "dashboard"));
         tabs.add(createTab("Patients", VaadinIcon.USERS, "patients"));
-        tabs.add(createTab("Examens", VaadinIcon.CLIPBOARD_TEXT, "exams"));
-        tabs.add(createTab("Planification", VaadinIcon.CALENDAR, "scheduling"));
-        tabs.add(createTab("WorkList", VaadinIcon.LIST, "worklist-dragdrop"));
-        tabs.add(createTab("Rapports", VaadinIcon.FILE_TEXT, "reports"));
+        
+        // ExamView - accessible par ADMIN, MEDECIN, SECRETAIRE
+        if (SecurityUtils.canAccessExamView()) {
+            tabs.add(createTab("Reception", VaadinIcon.CLIPBOARD_TEXT, "exams"));
+        }
+        
+        // SchedulingView - accessible par ADMIN, MEDECIN, SECRETAIRE
+        if (SecurityUtils.canAccessSchedulingView()) {
+            tabs.add(createTab("Planification", VaadinIcon.CALENDAR, "scheduling"));
+        }
+        
+        // WorklistDragDrop - accessible par ADMIN, TECHNICIEN
+        if (SecurityUtils.canAccessWorklist()) {
+            tabs.add(createTab("WorkList", VaadinIcon.LIST, "worklist-dragdrop"));
+        }
+        
+        // ReportView - accessible par ADMIN, RADIOLOGUE
+        if (SecurityUtils.canAccessReports()) {
+            tabs.add(createTab("Rapports", VaadinIcon.FILE_TEXT, "reports"));
+        }
 
         if (SecurityUtils.hasRole(UserRole.ADMIN)) {
             tabs.add(createTab("Paramètres", VaadinIcon.COG, "settings"));

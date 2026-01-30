@@ -138,4 +138,20 @@ public class SecurityUtils {
     public static boolean canManageExams() {
         return hasAnyRole(UserRole.ADMIN, UserRole.MEDECIN, UserRole.SECRETAIRE);
     }
+
+    public static boolean canAccessExamView() {
+        return hasAnyRole(UserRole.ADMIN, UserRole.MEDECIN, UserRole.SECRETAIRE);
+    }
+
+    public static boolean canAccessSchedulingView() {
+        return hasAnyRole(UserRole.ADMIN, UserRole.MEDECIN, UserRole.SECRETAIRE);
+    }
+
+    public static boolean canAccessWorklist() {
+        return hasAnyRole(UserRole.ADMIN, UserRole.TECHNICIEN);
+    }
+
+    public static boolean canAccessReports() {
+        return hasAnyRole(UserRole.ADMIN, UserRole.RADIOLOGUE);
+    }
 }

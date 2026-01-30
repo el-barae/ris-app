@@ -22,7 +22,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.auth.AnonymousAllowed;
+import jakarta.annotation.security.RolesAllowed;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -30,7 +30,7 @@ import java.util.List;
 
 @Route(value = "scheduling", layout = MainLayout.class)
 @PageTitle("Planification des examens")
-@AnonymousAllowed
+@RolesAllowed({"ADMIN", "MEDECIN", "SECRETAIRE"})
 public class SchedulingView extends VerticalLayout {
 
     private final ExamRepository examRepo;

@@ -56,6 +56,8 @@ public class Patient {
     @Column(name = "cin")
     private String cin;
 
+    private String nationality;
+
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Exam> exams;
 

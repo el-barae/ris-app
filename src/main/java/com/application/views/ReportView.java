@@ -42,8 +42,8 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
-import com.vaadin.flow.server.auth.AnonymousAllowed;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.security.RolesAllowed;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -54,7 +54,7 @@ import java.util.List;
 
 @Route(value = "reports", layout = MainLayout.class)
 @PageTitle("Rapports radiologiques")
-@AnonymousAllowed
+@RolesAllowed({"ADMIN", "RADIOLOGUE"})
 public class ReportView extends VerticalLayout {
 
     // =================================================================

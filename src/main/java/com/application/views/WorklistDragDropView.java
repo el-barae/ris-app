@@ -34,7 +34,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.auth.AnonymousAllowed;
+import jakarta.annotation.security.RolesAllowed;
 import com.vaadin.flow.component.page.Page;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -44,7 +44,7 @@ import java.util.List;
 
 @Route(value = "worklist-dragdrop", layout = MainLayout.class)
 @PageTitle("Worklist DICOM (MWL)")
-@AnonymousAllowed
+@RolesAllowed({"ADMIN", "TECHNICIEN"})
 public class WorklistDragDropView extends VerticalLayout {
 
     private final ExamRepository examRepo;
