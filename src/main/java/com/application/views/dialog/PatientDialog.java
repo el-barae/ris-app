@@ -8,6 +8,7 @@ import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -27,6 +28,7 @@ public class PatientDialog extends Dialog {
     private final Patient patient;
     private final Consumer<Patient> saveCallback;
     private final Binder<Patient> binder;
+    private final boolean isEditMode;
     
     // Champs du formulaire
     private final TextField patientId = new TextField("ID Patient");
@@ -40,13 +42,22 @@ public class PatientDialog extends Dialog {
     private final TextField city = new TextField("Ville");
     private final TextField postalCode = new TextField("Code postal");
     private final TextField cin = new TextField("CIN");
+    private final TextField passportNumber = new TextField("Passeport");
+    private final TextField nationality = new TextField("Nationalité");
+    
+    // Champs parentaux
+    private final TextField parentFirstName = new TextField("Prénom du parent");
+    private final TextField parentLastName = new TextField("Nom du parent");
+    private final TextField parentPhone = new TextField("Téléphone du parent");
+    private final TextField parentRelationship = new TextField("Relation");
     
     public PatientDialog(Patient patient, Consumer<Patient> saveCallback) {
-        this.patient = patient != null ? patient : new Patient();
+        this.isEditMode = patient != null;
+        this.patient = isEditMode ? patient : new Patient();
         this.saveCallback = saveCallback;
         this.binder = new Binder<>(Patient.class);
         
-        configureDialog();
+        configureDialog(isEditMode);
         configureFields();
         configureBinder();
         
@@ -56,21 +67,37 @@ public class PatientDialog extends Dialog {
         bindFields();
     }
     
-    private void configureDialog() {
+    private void configureDialog(boolean isEditMode) {
         setModal(true);
         setDraggable(true);
         setResizable(true);
         setWidth("600px");
         
         // Header
-        H3 title = new H3(patient != null ? "Modifier le patient" : "Nouveau patient");
+        H3 title = new H3(isEditMode ? "Modifier le patient" : "Nouveau patient");
         title.addClassNames("mb-m", "text-primary");
         
-        // Formulaire
-        FormLayout formLayout = new FormLayout();
-        formLayout.setWidthFull();
-        formLayout.add(patientId, firstName, lastName, dateOfBirth, gender, 
-                      phone, email, address, city, postalCode, cin);
+        // Formulaire principal
+        FormLayout mainFormLayout = new FormLayout();
+        mainFormLayout.setWidthFull();
+        mainFormLayout.add(patientId, firstName, lastName, dateOfBirth, gender, 
+                              phone, email, address, city, postalCode);
+        
+        // Section identité
+        H4 identityTitle = new H4("Identité");
+        identityTitle.addClassNames("mt-l", "mb-s", "text-secondary");
+        
+        FormLayout identityFormLayout = new FormLayout();
+        identityFormLayout.setWidthFull();
+        identityFormLayout.add(cin, passportNumber, nationality);
+        
+        // Section parentale
+        H4 parentTitle = new H4("Informations parentales");
+        parentTitle.addClassNames("mt-l", "mb-s", "text-secondary");
+        
+        FormLayout parentFormLayout = new FormLayout();
+        parentFormLayout.setWidthFull();
+        parentFormLayout.add(parentFirstName, parentLastName, parentPhone, parentRelationship);
         
         // Boutons
         HorizontalLayout buttonLayout = new HorizontalLayout();
@@ -87,7 +114,8 @@ public class PatientDialog extends Dialog {
         buttonLayout.add(cancelButton, saveButton);
         
         // Layout principal
-        VerticalLayout layout = new VerticalLayout(title, formLayout, buttonLayout);
+        VerticalLayout layout = new VerticalLayout(title, mainFormLayout, identityTitle, identityFormLayout, 
+                                                   parentTitle, parentFormLayout, buttonLayout);
         layout.setPadding(true);
         layout.setSpacing(true);
         layout.setMargin(false);
@@ -138,6 +166,25 @@ public class PatientDialog extends Dialog {
         
         cin.setPlaceholder("Ex: AB123456");
         cin.setRequiredIndicatorVisible(false);
+        
+        passportNumber.setPlaceholder("Ex: 12AB34567");
+        passportNumber.setRequiredIndicatorVisible(false);
+        
+        nationality.setPlaceholder("Ex: Française");
+        nationality.setRequiredIndicatorVisible(false);
+        
+        // Configuration des champs parentaux
+        parentFirstName.setPlaceholder("Ex: Marie");
+        parentFirstName.setRequiredIndicatorVisible(false);
+        
+        parentLastName.setPlaceholder("Ex: Dupont");
+        parentLastName.setRequiredIndicatorVisible(false);
+        
+        parentPhone.setPlaceholder("Ex: 06 12 34 56 78");
+        parentPhone.setRequiredIndicatorVisible(false);
+        
+        parentRelationship.setPlaceholder("Ex: Mère, Père, Tuteur");
+        parentRelationship.setRequiredIndicatorVisible(false);
     }
     
     private void configureBinder() {
@@ -216,6 +263,46 @@ public class PatientDialog extends Dialog {
                     cinValue.matches("^[A-Za-z0-9]+$"), 
                     "Le CIN ne peut contenir que des lettres et des chiffres")
                 .bind(Patient::getCin, Patient::setCin);
+        
+        // Validation du passeport
+        binder.forField(passportNumber)
+                .withValidator(new StringLengthValidator(
+                    "Le passeport ne doit pas dépasser 50 caractères", 0, 50))
+                .withValidator(passport -> passport == null || passport.trim().isEmpty() || 
+                    passport.matches("^[A-Za-z0-9]+$"), 
+                    "Le passeport ne peut contenir que des lettres et des chiffres")
+                .bind(Patient::getPassportNumber, Patient::setPassportNumber);
+        
+        // Validation de la nationalité
+        binder.forField(nationality)
+                .withValidator(new StringLengthValidator(
+                    "La nationalité ne doit pas dépasser 100 caractères", 0, 100))
+                .bind(Patient::getNationality, Patient::setNationality);
+        
+        // Validation du prénom du parent
+        binder.forField(parentFirstName)
+                .withValidator(new StringLengthValidator(
+                    "Le prénom du parent ne doit pas dépasser 50 caractères", 0, 50))
+                .bind(Patient::getParentFirstName, Patient::setParentFirstName);
+        
+        // Validation du nom du parent
+        binder.forField(parentLastName)
+                .withValidator(new StringLengthValidator(
+                    "Le nom du parent ne doit pas dépasser 50 caractères", 0, 50))
+                .bind(Patient::getParentLastName, Patient::setParentLastName);
+        
+        // Validation du téléphone du parent
+        binder.forField(parentPhone)
+                .withValidator(phone -> phone == null || phone.trim().isEmpty() || 
+                    phone.matches("^[0-9\\s\\-\\.\\(\\)]+$"), 
+                    "Le numéro de téléphone du parent n'est pas valide")
+                .bind(Patient::getParentPhone, Patient::setParentPhone);
+        
+        // Validation de la relation parentale
+        binder.forField(parentRelationship)
+                .withValidator(new StringLengthValidator(
+                    "La relation ne doit pas dépasser 50 caractères", 0, 50))
+                .bind(Patient::getParentRelationship, Patient::setParentRelationship);
     }
     
     private void bindFields() {
@@ -227,7 +314,7 @@ public class PatientDialog extends Dialog {
             Patient patientToSave = binder.getBean();
             
             // Generate patient ID if empty for new patients
-            if (patientToSave.getId() == null && (patientToSave.getPatientId() == null || patientToSave.getPatientId().trim().isEmpty())) {
+            if (!isEditMode && (patientToSave.getPatientId() == null || patientToSave.getPatientId().trim().isEmpty())) {
                 patientToSave.setPatientId(generatePatientId());
             }
             

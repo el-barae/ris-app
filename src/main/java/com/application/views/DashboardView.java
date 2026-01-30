@@ -204,8 +204,8 @@ public class DashboardView extends VerticalLayout {
                 .setHeader("Patient")
                 .setSortable(true);
 
-        grid.addColumn(exam -> exam.getExamType().toString())
-                .setHeader("Type")
+        grid.addColumn(exam -> exam.getModalityCode() != null ? exam.getModalityCode() : "N/A")
+                .setHeader("Modalité")
                 .setSortable(true);
 
         grid.addColumn(exam -> exam.getScheduledDateTime().format(DateTimeFormatter.ofPattern("HH:mm")))

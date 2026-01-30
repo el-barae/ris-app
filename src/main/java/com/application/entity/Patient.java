@@ -56,7 +56,18 @@ public class Patient {
     @Column(name = "cin")
     private String cin;
 
+    @Column(name = "passport_number")
+    private String passportNumber;
+
     private String nationality;
+
+    private String parentFirstName;
+
+    private String parentLastName;
+
+    private String parentPhone;
+
+    private String parentRelationship;
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Exam> exams;
@@ -71,5 +82,29 @@ public class Patient {
 
     public String getFullName() {
         return firstName + " " + lastName;
+    }
+
+    public String getParentFullName() {
+        if (parentFirstName != null && parentLastName != null) {
+            return parentFirstName + " " + parentLastName;
+        }
+        return null;
+    }
+
+    public boolean hasParentInfo() {
+        return parentFirstName != null || parentLastName != null || parentPhone != null;
+    }
+
+    public boolean hasPassport() {
+        return passportNumber != null && !passportNumber.trim().isEmpty();
+    }
+
+    public String getMainIdentity() {
+        if (hasPassport()) {
+            return "Passeport: " + passportNumber;
+        } else if (cin != null && !cin.trim().isEmpty()) {
+            return "CIN: " + cin;
+        }
+        return "Non spécifié";
     }
 }

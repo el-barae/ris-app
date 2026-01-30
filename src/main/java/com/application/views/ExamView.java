@@ -442,7 +442,7 @@ public class ExamView extends VerticalLayout {
             } else {
                 procedureName.setValue(exam.getAdditionalInstructions() != null ? exam.getAdditionalInstructions() : "");
             }
-            modality.setValue(exam.getModality());
+            modality.setValue(exam.getModalityCode());
             priority.setValue(exam.getPriority() != null ? exam.getPriority() : Priority.NORMAL);
         }
 
@@ -737,7 +737,22 @@ public class ExamView extends VerticalLayout {
 
         exam.setPatient(selectedPatient);
         exam.setMedecin(medecinSelector.getValue());
-        exam.setModality(modality.getValue());
+        
+        // Définir le modalityType correctement
+        if (modality.getValue() != null) {
+            Optional<ModalityType> modalityType = modalityRepo.findByCode(modality.getValue());
+            if (modalityType.isPresent()) {
+                exam.setModalityType(modalityType.get());
+            } else {
+                // Créer une modalité par défaut si elle n'existe pas
+                ModalityType newModality = new ModalityType();
+                newModality.setCode(modality.getValue());
+                newModality.setName(modality.getValue());
+                newModality.setIsActive(true);
+                newModality = modalityRepo.save(newModality);
+                exam.setModalityType(newModality);
+            }
+        }
         // Temporairement défini à maintenant pour éviter l'erreur de contrainte NOT NULL
         exam.setScheduledDateTime(java.time.LocalDateTime.now());
         exam.setStatus(isEdit ? exam.getStatus() : ExamStatus.CREATED);
@@ -845,7 +860,7 @@ public class ExamView extends VerticalLayout {
                             if (patientName.contains(search)) matches = true;
                             if (exam.getPatient().getPatientId() != null && exam.getPatient().getPatientId().toLowerCase().contains(search)) matches = true;
                         }
-                        if (exam.getModality() != null && exam.getModality().toLowerCase().contains(search)) matches = true;
+                        if (exam.getModalityCode() != null && exam.getModalityCode().toLowerCase().contains(search)) matches = true;
 
                         if (!matches) return false;
                     }
@@ -856,7 +871,7 @@ public class ExamView extends VerticalLayout {
                     }
 
                     // Filtre modalité
-                    if (modalityFilter.getValue() != null && !modalityFilter.getValue().equals(exam.getModality())) {
+                    if (modalityFilter.getValue() != null && !modalityFilter.getValue().equals(exam.getModalityCode())) {
                         return false;
                     }
 
@@ -946,7 +961,7 @@ public class ExamView extends VerticalLayout {
         examSection.add(
                 examTitle,
                 createDetailRow("N° Accession", exam.getAccessionNumber()),
-                createDetailRow("Modalité", exam.getModality()),
+                createDetailRow("Modalité", exam.getModalityCode()),
                 createDetailRow("Médecin prescripteur", exam.getMedecin() != null ?
                         "Dr. " + exam.getMedecin().getFirstName() + " " + exam.getMedecin().getLastName() : "N/A"),
                 createDetailRow("Statut", exam.getStatus() != null ? exam.getStatus().toString() : "N/A"),
@@ -1071,7 +1086,7 @@ public class ExamView extends VerticalLayout {
         if (exam.getPatient() != null) {
             Paragraph details = new Paragraph(
                     "Patient: " + exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName() + "\n" +
-                            "Modalité: " + exam.getModality() + "\n" +
+                            "Modalité: " + exam.getModalityCode() + "\n" +
                             "N° Accession: " + exam.getAccessionNumber()
             );
             details.getStyle()

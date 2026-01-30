@@ -2,9 +2,9 @@ package com.application.views;
 
 import com.application.entity.Exam;
 import com.application.entity.ExamStatus;
-import com.application.entity.ModalityType;
+import com.application.entity.Modality;
 import com.application.repository.ExamRepository;
-import com.application.repository.ModalityTypeRepository;
+import com.application.repository.ModalityRepository;
 import com.application.views.calendar.ExamCalendarView;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -34,13 +34,13 @@ import java.util.List;
 public class SchedulingView extends VerticalLayout {
 
     private final ExamRepository examRepo;
-    private final ModalityTypeRepository modalityTypeRepo;
+    private final ModalityRepository modalityRepo;
     private final Grid<Exam> examGrid = new Grid<>(Exam.class);
     private ExamCalendarView examCalendar;
 
-    public SchedulingView(ExamRepository examRepo, ModalityTypeRepository modalityTypeRepo) {
+    public SchedulingView(ExamRepository examRepo, ModalityRepository modalityRepo) {
         this.examRepo = examRepo;
-        this.modalityTypeRepo = modalityTypeRepo;
+        this.modalityRepo = modalityRepo;
         
         // Initialize calendar
         examCalendar = new ExamCalendarView(examRepo);
@@ -209,16 +209,18 @@ public class SchedulingView extends VerticalLayout {
             exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName() : "N/A")));
         content.add(new Span("Accession: " + exam.getAccessionNumber()));
         
-        // Sélecteur de modalité
-        ComboBox<ModalityType> modalitySelector = new ComboBox<>("Modalité");
-        modalitySelector.setItems(modalityTypeRepo.findAllActiveOrdered());
-        modalitySelector.setItemLabelGenerator(modality -> modality.getCode() + " - " + modality.getName());
-        modalitySelector.setPlaceholder("Sélectionner une modalité");
+        // Sélecteur de modalité (équipement)
+        ComboBox<Modality> modalitySelector = new ComboBox<>("Équipement / Modalité");
+        modalitySelector.setItems(modalityRepo.findAllActiveOrdered());
+        modalitySelector.setItemLabelGenerator(modality -> 
+            modality.getModalityType().getCode() + " - " + modality.getNom() + " (" + modality.getAetitle() + ")");
+        modalitySelector.setPlaceholder("Sélectionner un équipement");
         modalitySelector.setWidthFull();
         
         // Pré-sélectionner la modalité actuelle si elle existe
-        if (exam.getModality() != null) {
-            modalityTypeRepo.findByCode(exam.getModality()).ifPresent(modalitySelector::setValue);
+        Modality currentModality = exam.getModalityEntity();
+        if (currentModality != null) {
+            modalitySelector.setValue(currentModality);
         }
         
         content.add(modalitySelector);
@@ -238,14 +240,15 @@ public class SchedulingView extends VerticalLayout {
         dialog.addConfirmListener(e -> {
             if (dateTimePicker.getValue() != null && modalitySelector.getValue() != null) {
                 exam.setScheduledDateTime(dateTimePicker.getValue());
-                exam.setModality(modalitySelector.getValue().getCode());
+                exam.setModalityEntity(modalitySelector.getValue());
                 exam.setStatus(ExamStatus.PLANNED);
                 examRepo.save(exam);
                 
                 Notification.show(
                     "Examen planifié avec succès pour le " + 
                     dateTimePicker.getValue().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
-                    " avec la modalité " + modalitySelector.getValue().getCode(),
+                    " avec l'équipement " + modalitySelector.getValue().getNom() +
+                    " (" + modalitySelector.getValue().getModalityType().getCode() + ")",
                     3000,
                     Notification.Position.BOTTOM_END
                 ).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
@@ -253,7 +256,7 @@ public class SchedulingView extends VerticalLayout {
                 refreshExamList();
             } else {
                 if (modalitySelector.getValue() == null) {
-                    Notification.show("Veuillez sélectionner une modalité", 3000, Notification.Position.MIDDLE)
+                    Notification.show("Veuillez sélectionner un équipement", 3000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 } else {
                     Notification.show("Veuillez sélectionner une date et heure", 3000, Notification.Position.MIDDLE)
