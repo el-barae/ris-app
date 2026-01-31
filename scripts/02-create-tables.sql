@@ -1,7 +1,7 @@
 -- ========================================
 -- Création des tables pour l'application radiologique
 -- ========================================
-
+BEGIN;
 -- Table des types de modalités
 CREATE TABLE modality_types (
     id BIGSERIAL PRIMARY KEY,
@@ -183,3 +183,6 @@ CREATE TRIGGER update_modalities_updated_at BEFORE UPDATE ON modalities
 
 CREATE TRIGGER update_modality_types_updated_at BEFORE UPDATE ON modality_types 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+
+COMMIT;

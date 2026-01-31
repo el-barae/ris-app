@@ -40,7 +40,7 @@ public class Exam {
     @EqualsAndHashCode.Exclude
     private ModalityType modalityType;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "modality_id")
     @EqualsAndHashCode.Exclude
     private Modality modality;

@@ -126,21 +126,30 @@ public class MwlFindScp extends BasicCFindSCP {
                     if (modality != null && !modality.isEmpty() && !modality.equals("*")) {
                         String examModality = exam.getModality();
                         if (examModality == null || !examModality.equalsIgnoreCase(modality)) {
-                            System.out.println("   ❌ Filtré (modalité): " + exam.getAccessionNumber() +
+                            System.out.println("   Filtré (modalité): " + exam.getAccessionNumber() +
                                     " (" + examModality + " != " + modality + ")");
                             return false;
                         }
                     }
 
-                    // Filtre 3: Station AET - On compare avec le AE Title demandant
-                    // Pour l'instant, on accepte tous les examens de la bonne modalité
-                    // Vous pouvez ajouter un champ scheduledStationAET dans votre base si besoin
+                    // Filtre 3: Station AET - On compare avec le AE Title de la modalité assignée
+                    if (stationAET != null && !stationAET.isEmpty() && !stationAET.equals("*")) {
+                        if (exam.getModalityEntity() == null || 
+                            exam.getModalityEntity().getAetitle() == null ||
+                            !exam.getModalityEntity().getAetitle().equalsIgnoreCase(stationAET)) {
+                            String examAET = exam.getModalityEntity() != null ? 
+                                exam.getModalityEntity().getAetitle() : "NULL";
+                            System.out.println("   Filtré (station AET): " + exam.getAccessionNumber() +
+                                    " (" + examAET + " != " + stationAET + ")");
+                            return false;
+                        }
+                    }
 
                     // Filtre 4: Date
 //                    if (finalSearchDate != null && exam.getScheduledDateTime() != null) {
 //                        LocalDate examDate = exam.getScheduledDateTime().toLocalDate();
 //                        if (!examDate.equals(finalSearchDate)) {
-//                            System.out.println("   ❌ Filtré (date): " + exam.getAccessionNumber() +
+//                            System.out.println("   Filtré (date): " + exam.getAccessionNumber() +
 //                                    " (" + examDate + " != " + finalSearchDate + ")");
 //                            return false;
 //                        }
@@ -180,7 +189,8 @@ public class MwlFindScp extends BasicCFindSCP {
         }
         mwlItem.setString(Tag.StudyInstanceUID, VR.UI, studyUID);
 
-        mwlItem.setString(Tag.RequestedProcedureDescription, VR.LO, exam.getExamType().toString());
+        mwlItem.setString(Tag.RequestedProcedureDescription, VR.LO, 
+            exam.getModalityCode() != null ? exam.getModalityCode() : "UNKNOWN");
 
         // --- 3. Scheduled Procedure Step Sequence ---
         Sequence spsSeq = mwlItem.newSequence(Tag.ScheduledProcedureStepSequence, 1);
@@ -216,8 +226,8 @@ public class MwlFindScp extends BasicCFindSCP {
             desc += exam.getAdditionalInstructions();
         }
         if (desc.isEmpty()) {
-            desc = exam.getExamType() != null ? 
-                exam.getExamType().toString() : exam.getModality() + " Examination";
+            desc = exam.getModalityCode() != null ? 
+                exam.getModalityCode() + " Examination" : "Unknown Examination";
         }
         spsItem.setString(Tag.ScheduledProcedureStepDescription, VR.LO, desc);
 

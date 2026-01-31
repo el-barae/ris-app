@@ -34,7 +34,7 @@ public class Modality {
     @Column(name = "marque")
     private String marque;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "modality_type_id", nullable = false)
     @EqualsAndHashCode.Exclude
     private ModalityType modalityType;

@@ -1,7 +1,7 @@
 -- ========================================
 -- Création de la table Flyway pour le versioning
 -- ========================================
-
+BEGIN;
 -- Table Flyway pour le suivi des migrations
 CREATE TABLE IF NOT EXISTS flyway_schema_history (
     installed_rank INTEGER NOT NULL,
@@ -19,3 +19,5 @@ CREATE TABLE IF NOT EXISTS flyway_schema_history (
 
 -- Index pour optimiser les recherches
 CREATE INDEX IF NOT EXISTS flyway_schema_history_s_idx ON flyway_schema_history (success);
+
+COMMIT;

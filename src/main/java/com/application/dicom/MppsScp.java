@@ -81,7 +81,7 @@ public class MppsScp extends BasicMPPSSCP {
                         ExamStatusMessage wsMessage = new ExamStatusMessage(
                                 exam.getAccessionNumber(),
                                 exam.getPatient().getFirstName() + " " + exam.getPatient().getLastName(),
-                                exam.getExamType().toString(),
+                                exam.getModalityCode() != null ? exam.getModalityCode() : "UNKNOWN",
                                 oldStatus.toString(),
                                 newStatus.toString(),
                                 statusMessage
@@ -89,7 +89,7 @@ public class MppsScp extends BasicMPPSSCP {
 
                         // Utiliser UNIQUEMENT webSocketService
                         webSocketService.sendStatusUpdate(wsMessage);
-                        System.out.println("   📡 Message WebSocket envoyé");
+                        System.out.println("   Message WebSocket envoyé");
 
                         // COMMENTEZ OU SUPPRIMEZ cette ligne
                         // notificationService.notifyExamStatusUpdate(exam, oldStatus, newStatus);
