@@ -352,7 +352,9 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
                 .set("background", "linear-gradient(135deg, #10b981 0%, #059669 100%)")
                 .set("color", "white")
                 .set("box-shadow", "0 2px 8px rgba(0,0,0,0.1)")
-                .set("min-height", "60px");
+                .set("min-height", "60px")
+                .set("padding-left", "20px")
+                .set("padding-right", "20px");
 
         Button menuToggle = new Button(VaadinIcon.MENU.create());
         menuToggle.addClickListener(e -> setDrawerOpened(!isDrawerOpened()));
@@ -372,7 +374,8 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         title.getStyle()
                 .set("color", "white")
                 .set("font-size", "1.5rem")
-                .set("font-weight", "600");
+                .set("font-weight", "600")
+                .set("margin-top", "8px");
 
         header.add(title);
         header.setFlexGrow(1, title);

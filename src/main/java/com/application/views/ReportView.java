@@ -111,7 +111,11 @@ public class ReportView extends VerticalLayout {
                 .set("background", "linear-gradient(135deg, #10b981 0%, #059669 100%)")
                 .set("color", "white")
                 .set("box-shadow", "0 4px 6px rgba(0,0,0,0.1)")
-                .set("border-radius", "0 0 16px 16px");
+                .set("border-radius", "0 0 16px 16px")
+                .set("margin-top", "15px")
+                .set("margin-left", "15px")
+                .set("margin-right", "15px")
+                .set("width", "calc(100% - 30px)");
 
         Icon logoIcon = VaadinIcon.DOCTOR.create();
         logoIcon.setSize("28px");

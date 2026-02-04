@@ -16,6 +16,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.component.UI;
 import com.application.security.VaadinAuthService;
+import com.application.security.SecurityUtils;
 
 @Route("login")
 @PageTitle("RIS - Connexion")
@@ -50,7 +51,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         loginForm.addLoginListener(event -> {
             boolean success = authService.authenticate(event.getUsername(), event.getPassword());
             if (success) {
-                UI.getCurrent().navigate("/");
+                UI.getCurrent().navigate("dashboard");
             } else {
                 loginForm.setError(true);
             }
@@ -158,6 +159,12 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+        // Si l'utilisateur est déjà authentifié, rediriger vers le dashboard
+        if (SecurityUtils.isUserLoggedIn()) {
+            UI.getCurrent().navigate("dashboard");
+            return;
+        }
+        
         boolean error = event.getLocation().getQueryParameters().getParameters().containsKey("error");
         loginForm.setError(error);
     }
