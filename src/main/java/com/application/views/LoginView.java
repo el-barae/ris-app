@@ -14,6 +14,8 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import com.vaadin.flow.component.UI;
+import com.application.security.VaadinAuthService;
 
 @Route("login")
 @PageTitle("RIS - Connexion")
@@ -21,8 +23,11 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     private final LoginForm loginForm = new LoginForm();
+    private final VaadinAuthService authService;
 
-    public LoginView() {
+    public LoginView(VaadinAuthService authService) {
+        this.authService = authService;
+        
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -40,6 +45,16 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
             .set("align-items", "center")
             .set("margin", "0")
             .set("padding", "0");
+        
+        // Configure login form listener
+        loginForm.addLoginListener(event -> {
+            boolean success = authService.authenticate(event.getUsername(), event.getPassword());
+            if (success) {
+                UI.getCurrent().navigate("/");
+            } else {
+                loginForm.setError(true);
+            }
+        });
         
         add(createLoginForm());
     }
@@ -98,7 +113,6 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
             .set("margin", "0 0 2rem 0")
             .set("text-align", "center");
 
-        loginForm.setAction("login");
         loginForm.addClassNames("w-full");
         
         // Style du formulaire

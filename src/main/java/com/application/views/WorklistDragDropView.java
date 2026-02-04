@@ -17,7 +17,6 @@ import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dnd.GridDropMode;
-import com.vaadin.flow.component.card.Card;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
@@ -25,22 +24,20 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.page.Page;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import jakarta.annotation.security.RolesAllowed;
-import com.vaadin.flow.component.page.Page;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.annotation.security.RolesAllowed;
 
 @Route(value = "worklist-dragdrop", layout = MainLayout.class)
 @PageTitle("Worklist DICOM (MWL)")
@@ -284,14 +281,16 @@ public class WorklistDragDropView extends VerticalLayout {
         leftCardsContainer.setPadding(false);
     }
 
-    private Card createExamCard(Exam exam) {
-        Card card = new Card();
+    private Div createExamCard(Exam exam) {
+        Div card = new Div();
         card.setWidth("100%");
         card.getStyle()
                 .set("cursor", "grab")
                 .set("transition", "all 0.3s ease")
                 .set("border", "1px solid #6b7280")
                 .set("border-radius", "12px")
+                .set("padding", "0")
+                .set("margin", "0 0 1rem 0")
                 .set("box-shadow", "0 2px 4px rgba(0,0,0,0.05)")
                 .set("background", "white");
 
@@ -317,7 +316,7 @@ public class WorklistDragDropView extends VerticalLayout {
         cardHeader.setWidthFull();
         cardHeader.setAlignItems(Alignment.CENTER);
 
-        Icon modalityIcon = getModalityIcon(exam.getModality());
+        Icon modalityIcon = getModalityIcon(exam.getModalityCode());
         modalityIcon.setSize("24px");
         modalityIcon.getStyle().set("color", "#374151");
 
@@ -340,7 +339,7 @@ public class WorklistDragDropView extends VerticalLayout {
                 .set("font-size", "13px");
 
         infoGrid.add(
-                createInfoItem("", "Modalité", exam.getModality()),
+                createInfoItem("", "Modalité", exam.getModalityCode()),
                 createInfoItem("", "", exam.getScheduledDateTime() != null ?
                         exam.getScheduledDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "N/A")
         );
@@ -452,7 +451,7 @@ public class WorklistDragDropView extends VerticalLayout {
                 .setFlexGrow(1);
 
         // Colonne Modalité
-        grid.addColumn(Exam::getModality)
+        grid.addColumn(Exam::getModalityCode)
                 .setHeader("Modalité")
                 .setWidth("100px")
                 .setFlexGrow(0);
@@ -584,7 +583,7 @@ public class WorklistDragDropView extends VerticalLayout {
                 createDetailRow("", "IPP", exam.getPatient() != null ? exam.getPatient().getPatientId() : "N/A"),
                 createDetailRow("", "CIN", exam.getPatient() != null ? exam.getPatient().getCin() : "N/A"),
                 createDetailRow("", "Accession", exam.getAccessionNumber()),
-                createDetailRow("", "Modalité", exam.getModality()),
+                createDetailRow("", "Modalité", exam.getModalityCode()),
                 createDetailRow("", "Type", exam.getExamType() != null ? exam.getExamType().toString() : "N/A"),
                 createDetailRow("", "Programmé", exam.getScheduledDateTime() != null ?
                         exam.getScheduledDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A"),
@@ -613,7 +612,7 @@ public class WorklistDragDropView extends VerticalLayout {
                                     (exam.getPatient().getFirstName().toLowerCase().contains(term) ||
                                             exam.getPatient().getLastName().toLowerCase().contains(term) ||
                                             exam.getPatient().getPatientId().toLowerCase().contains(term))) ||
-                                    exam.getModality().toLowerCase().contains(term) ||
+                                    exam.getModalityCode().toLowerCase().contains(term) ||
                                     exam.getAccessionNumber().toLowerCase().contains(term)
                     )
                     .toList();
@@ -728,7 +727,7 @@ public class WorklistDragDropView extends VerticalLayout {
                 leftCardsContainer.add(currentRow);
             }
 
-            Card card = createExamCard(exams.get(i));
+            Div card = createExamCard(exams.get(i));
             card.setWidth("48%");
             if (currentRow != null) {
                 currentRow.add(card);
@@ -761,8 +760,8 @@ public class WorklistDragDropView extends VerticalLayout {
             modality.getCode() + " - " + modality.getName());
         
         // Find current modality
-        if (exam.getModality() != null) {
-            modalityRepo.findByCode(exam.getModality())
+        if (exam.getModalityCode() != null) {
+            modalityRepo.findByCode(exam.getModalityCode())
                 .ifPresent(modalityCombo::setValue);
         }
 
@@ -811,21 +810,9 @@ public class WorklistDragDropView extends VerticalLayout {
             }
 
             // Update exam
-            exam.setModality(selectedModality.getCode());
+            exam.setModalityType(selectedModality);
             exam.setProcedure(selectedProcedure);
             
-            // Update examType based on modality
-            String modalityCode = selectedModality.getCode();
-            switch (modalityCode) {
-                case "CT" -> exam.setExamType(com.application.entity.ExamType.CT);
-                case "MR" -> exam.setExamType(com.application.entity.ExamType.MRI);
-                case "XR", "CR", "DX" -> exam.setExamType(com.application.entity.ExamType.RX);
-                case "US" -> exam.setExamType(com.application.entity.ExamType.ECHO);
-                case "MG" -> exam.setExamType(com.application.entity.ExamType.MAMMO);
-                case "RF" -> exam.setExamType(com.application.entity.ExamType.FLUORO);
-                case "PT" -> exam.setExamType(com.application.entity.ExamType.PET);
-            }
-
             examRepo.save(exam);
             refreshGrids();
             
@@ -850,7 +837,7 @@ public class WorklistDragDropView extends VerticalLayout {
         dialog.setText("Voulez-vous vraiment supprimer définitivement cet examen ?\n\n" +
                 "Patient: " + (exam.getPatient() != null ? 
                         exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName() : "N/A") + "\n" +
-                "Modalité: " + exam.getModality() + "\n" +
+                "Modalité: " + exam.getModalityCode() + "\n" +
                 "Accession: " + exam.getAccessionNumber());
         dialog.setCancelable(true);
         dialog.setConfirmText("Supprimer");

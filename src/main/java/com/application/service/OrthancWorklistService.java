@@ -17,7 +17,7 @@ import java.util.Map;
 public class OrthancWorklistService {
 
     private static final Logger logger = LoggerFactory.getLogger(OrthancWorklistService.class);
-    private static final String ORTHANC_WORKLIST_URL = "http://10.110.80.178:8042/worklists/create";
+    private static final String ORTHANC_WORKLIST_URL = "http://localhost:8042/worklists/create";
     
     @Autowired
     private RestTemplate restTemplate;
@@ -26,12 +26,12 @@ public class OrthancWorklistService {
         try {
             for (Exam exam : exams) {
                 Map<String, Object> worklistPayload = convertExamToWorklistFormat(exam);
-                
+
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
-                
+
                 HttpEntity<Map<String, Object>> entity = new HttpEntity<>(worklistPayload, headers);
-                
+
                 logger.info("Sending worklist to Orthanc for exam: {}", exam.getAccessionNumber());
                 
                 ResponseEntity<String> response = restTemplate.exchange(
@@ -93,8 +93,11 @@ public class OrthancWorklistService {
         Map<String, Object> procedureStep = new HashMap<>();
         procedureStep.put("Modality", exam.getModality());
 
-        procedureStep.put("ScheduledStationAETitle", exam.getModality()+'1');
-        
+        procedureStep.put(
+                "ScheduledStationAETitle",
+                exam.getModality() + "1"
+        );
+
         // Utiliser la procédure et les instructions additionnelles pour la description
         String description = "";
         if (exam.getProcedure() != null) {

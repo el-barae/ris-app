@@ -3,7 +3,6 @@ package com.application;
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.theme.Theme;
-import com.vaadin.flow.theme.lumo.Lumo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
@@ -16,9 +15,9 @@ import org.springframework.context.annotation.ComponentScan;
  *
  */
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.application", "com.hospital.ris", "com.application.config"})
-@StyleSheet(Lumo.STYLESHEET)
-@StyleSheet("styles.css")
+@ComponentScan(basePackages = {"com.application", "com.application.config"})
+@StyleSheet("./styles/lumo.css")
+@StyleSheet("./styles/styles.css")
 @Theme(value = "radiology-app")
 public class Application implements AppShellConfigurator {
 

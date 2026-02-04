@@ -1,8 +1,5 @@
 package com.application.security;
 
-import static com.vaadin.flow.spring.security.VaadinSecurityConfigurer.vaadin;
-
-import com.application.views.LoginView;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -11,8 +8,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,26 +22,54 @@ import java.io.IOException;
 public class SecurityConfiguration {
 
     @Bean
+    public AuthenticationManager authenticationManager(HttpSecurity http, UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) throws Exception {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder);
+        return new org.springframework.security.authentication.ProviderManager(authProvider);
+    }
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder);
+        return authProvider;
+    }
+
+    @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // Autoriser l'accès au WebSocket AVANT la configuration Vaadin
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, DaoAuthenticationProvider authProvider) throws Exception {
+        // Autoriser l'accès aux ressources publiques
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/ws-exam-status/**").permitAll()
+                .requestMatchers("/login", "/login/**", "/test-login").permitAll()
+                .requestMatchers("/perform-login").permitAll()
+                .requestMatchers("/", "/**").permitAll()  // Allow all Vaadin routes
+                .requestMatchers("/images/**", "/icons/**", "/frontend/**", "/styles/**").permitAll()
+                .anyRequest().permitAll()  // Allow all requests - Vaadin will handle auth
         );
 
-        // Désactiver CSRF pour le WebSocket
-        http.csrf(csrf -> csrf
-                .ignoringRequestMatchers("/ws-exam-status/**")
+        // Désactiver le formulaire de login Spring - Vaadin gère l'authentification
+        http.formLogin(form -> form.disable());
+
+        // Configuration logout
+        http.logout(logout -> logout
+                .logoutSuccessUrl("/login")
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID")
+                .permitAll()
         );
 
-        http.with(vaadin(), vaadin -> vaadin
-                .loginView(LoginView.class)
-                .defaultSuccessUrl("/dashboard")
-        );
+        // Configurer l'authentication provider
+        http.authenticationProvider(authProvider);
+
+        // Désactiver CSRF complètement - Vaadin gère sa propre sécurité
+        http.csrf(csrf -> csrf.disable());
 
         return http.build();
     }

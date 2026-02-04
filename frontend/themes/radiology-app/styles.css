@@ -1,0 +1,56 @@
+/* Theme for SAHTY Radiology Application */
+
+:root {
+  --lumo-primary-color: #0088cc;
+  --lumo-primary-text-color: #ffffff;
+  --lumo-secondary-color: #f5f5f5;
+  --lumo-secondary-text-color: #333333;
+  --lumo-error-color: #ff4444;
+  --lumo-success-color: #00aa00;
+  --lumo-warning-color: #ffaa00;
+}
+
+/* Custom styles for radiology application */
+.main-layout {
+  padding: 1rem;
+}
+
+.header {
+  background-color: var(--lumo-primary-color);
+  color: var(--lumo-primary-text-color);
+  padding: 1rem;
+}
+
+.content {
+  margin-top: 1rem;
+}
+
+/* Vaadin component overrides */
+.vaadin-button {
+  background-color: var(--lumo-primary-color);
+  color: var(--lumo-primary-text-color);
+}
+
+.vaadin-button:hover {
+  background-color: #0066aa;
+}
+
+.vaadin-text-field {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.vaadin-grid {
+  border: 1px solid #ddd;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .main-layout {
+    padding: 0.5rem;
+  }
+  
+  .header {
+    padding: 0.5rem;
+  }
+}

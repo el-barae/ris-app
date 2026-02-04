@@ -11,11 +11,12 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.server.VaadinServletRequest;
+import com.vaadin.flow.component.UI;
+import com.application.security.SecurityUtils;
 import jakarta.servlet.http.HttpServletRequest;
 
 @Route("")
 @PageTitle("RIS Radiologie")
-@AnonymousAllowed
 public class MainView extends VerticalLayout implements BeforeEnterObserver {
 
     public MainView() {
@@ -56,15 +57,13 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         // Vérifier si l'utilisateur est authentifié
-        HttpServletRequest request = VaadinServletRequest.getCurrent().getHttpServletRequest();
-        boolean isAuthenticated = request.getUserPrincipal() != null;
-        
-        if (isAuthenticated) {
-            // Rediriger vers le dashboard si authentifié
-            event.forwardTo("dashboard");
-        } else {
-            // Rediriger vers la page de login si non authentifié
-            event.forwardTo("login");
+        if (!SecurityUtils.isUserLoggedIn()) {
+            // Rediriger vers la page de login
+            UI.getCurrent().navigate("login");
+            return;
         }
+        
+        // Si authentifié, rediriger vers le dashboard
+        UI.getCurrent().navigate("dashboard");
     }
 }

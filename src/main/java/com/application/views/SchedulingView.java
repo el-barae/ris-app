@@ -289,7 +289,7 @@ public class SchedulingView extends VerticalLayout {
         
         dialog.add(content);
         dialog.setConfirmText("Fermer");
-        dialog.setCancelButton(null);
+        dialog.setCancelButton((com.vaadin.flow.component.Component) null);
         
         dialog.open();
     }
