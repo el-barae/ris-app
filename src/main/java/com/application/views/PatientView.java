@@ -8,6 +8,7 @@ import com.application.service.PatientDataCleanupService;
 import com.application.views.dialog.PatientDialog;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
@@ -186,7 +187,7 @@ public class PatientView extends VerticalLayout {
         header.add(title, searchField);
         if (canCreate()) {
             Button newPatientBtn = new Button("Nouveau patient", VaadinIcon.PLUS.create());
-            newPatientBtn.addClassNames("primary");
+            newPatientBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             newPatientBtn.addClickListener(e -> {
                 openCreateDialog();
             });
@@ -213,7 +214,7 @@ public class PatientView extends VerticalLayout {
         // Bouton modifier
         if (canModify()) {
             Button editBtn = new Button(VaadinIcon.EDIT.create());
-            editBtn.addClassNames("small", "icon-button", "tertiary");
+            editBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
             editBtn.getElement().setProperty("title", "Modifier");
             editBtn.addClickListener(e -> {
                 openEditDialog(patient);
@@ -224,7 +225,7 @@ public class PatientView extends VerticalLayout {
         // Bouton supprimer
         if (canDelete()) {
             Button deleteBtn = new Button(VaadinIcon.TRASH.create());
-            deleteBtn.addClassNames("small", "icon-button", "error");
+            deleteBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
             deleteBtn.getElement().setProperty("title", "Supprimer");
             deleteBtn.addClickListener(e -> {
                 deletePatient(patient);

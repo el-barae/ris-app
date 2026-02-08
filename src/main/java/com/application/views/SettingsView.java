@@ -7,6 +7,7 @@ import com.application.service.ModalityService;
 import com.application.service.PacsService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -128,7 +129,7 @@ public class SettingsView extends VerticalLayout {
         headerLayout.setJustifyContentMode(com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode.BETWEEN);
 
         Button addUserBtn = new Button("Ajouter utilisateur", VaadinIcon.PLUS.create());
-        addUserBtn.addClassNames("primary");
+        addUserBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         addUserBtn.addClickListener(e -> openUserDialog(null));
 
         headerLayout.add(new H2("Gestion des utilisateurs"), addUserBtn);
@@ -176,7 +177,7 @@ public class SettingsView extends VerticalLayout {
         mwlStatusBadge.addClassNames("badge", "text-s", "font-semibold", "p-xs");
         
         Button restartMWLBtn = new Button("Redémarrer serveur MWL", VaadinIcon.REFRESH.create());
-        restartMWLBtn.addClassNames("secondary");
+        restartMWLBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         restartMWLBtn.addClickListener(e -> restartMWLServer());
         
         mwlStatusLayout.add(mwlStatusBadge, restartMWLBtn);
@@ -194,7 +195,7 @@ public class SettingsView extends VerticalLayout {
         modalityForm.add(modalityAeTitle, modalityHost, modalityPort);
         
         Button testModalityBtn = new Button("Tester connexion", VaadinIcon.CONNECT.create());
-        testModalityBtn.addClassNames("secondary");
+        testModalityBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         testModalityBtn.addClickListener(e -> testModalityConnection());
         
         modalitySection.add(modalityTitle, modalityForm, testModalityBtn);
@@ -211,7 +212,7 @@ public class SettingsView extends VerticalLayout {
         pacsForm.add(pacsAeTitle, pacsIp, pacsPort);
         
         Button testPacsBtn = new Button("Tester connexion", VaadinIcon.CONNECT.create());
-        testPacsBtn.addClassNames("secondary");
+        testPacsBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         testPacsBtn.addClickListener(e -> testPacsConnection());
         
         pacsSection.add(pacsTitle, pacsForm, testPacsBtn);
@@ -224,7 +225,7 @@ public class SettingsView extends VerticalLayout {
         testsTitle.addClassNames("mb-s", "text-primary");
         
         Button testAllBtn = new Button("Tester toutes les connexions", VaadinIcon.PLUG.create());
-        testAllBtn.addClassNames("primary");
+        testAllBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         testAllBtn.addClickListener(e -> testAllConnections());
         
         testsSection.add(testsTitle, testAllBtn);
@@ -235,7 +236,7 @@ public class SettingsView extends VerticalLayout {
         buttonLayout.addClassNames("mt-l");
 
         Button saveBtn = new Button("Enregistrer configuration", VaadinIcon.CHECK.create());
-        saveBtn.addClassNames("primary");
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveBtn.addClickListener(e -> saveDicomConfiguration());
 
         buttonLayout.add(saveBtn);
@@ -335,19 +336,19 @@ public class SettingsView extends VerticalLayout {
 
         // Edit button
         Button editBtn = new Button(VaadinIcon.EDIT.create());
-        editBtn.addClassNames("small", "icon-button", "tertiary");
+        editBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
         editBtn.getElement().setProperty("title", "Modifier");
         editBtn.addClickListener(e -> openUserDialog(user));
 
         // Toggle active button
         Button toggleBtn = new Button(user.getActive() ? VaadinIcon.EYE_SLASH.create() : VaadinIcon.EYE.create());
-        toggleBtn.addClassNames("small", "icon-button", "secondary");
+        toggleBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
         toggleBtn.getElement().setProperty("title", user.getActive() ? "Désactiver" : "Activer");
         toggleBtn.addClickListener(e -> toggleUserActive(user));
 
         // Delete button
         Button deleteBtn = new Button(VaadinIcon.TRASH.create());
-        deleteBtn.addClassNames("small", "icon-button", "error");
+        deleteBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
         deleteBtn.getElement().setProperty("title", "Supprimer");
         deleteBtn.addClickListener(e -> confirmDeleteUser(user));
 
@@ -383,7 +384,7 @@ public class SettingsView extends VerticalLayout {
         form.add(username, password, email, firstName, lastName, role);
 
         Button saveBtn = new Button("Enregistrer", VaadinIcon.CHECK.create());
-        saveBtn.addClassNames("primary");
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveBtn.addClickListener(e -> {
             try {
                 if (user == null) {
@@ -448,7 +449,7 @@ public class SettingsView extends VerticalLayout {
             Notification.show("Utilisateur supprimé avec succès");
             dialog.close();
         });
-        confirmBtn.addClassNames("error");
+        confirmBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_PRIMARY);
         
         Button cancelBtn = new Button("Annuler", e -> dialog.close());
         

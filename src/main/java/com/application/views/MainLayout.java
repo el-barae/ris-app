@@ -7,6 +7,7 @@ import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
@@ -37,7 +38,11 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         setPrimarySection(Section.DRAWER);
         addToNavbar(createHeader());
         addToDrawer(createDrawer());
-        setupWebSocketListener();
+        
+        // N'exécuter le WebSocket que si l'utilisateur est connecté
+        if (SecurityUtils.isUserLoggedIn()) {
+            setupWebSocketListener();
+        }
     }
 
 //    private void setupWebSocketListener() {
@@ -362,20 +367,32 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         menuToggle.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         menuToggle.getStyle()
                 .set("color", "white")
-                .set("background", "rgba(255,255,255,0.1)");
+                .set("background", "rgba(255,255,255,0.1)")
+                .set("margin-top", "14px");
         header.add(menuToggle);
 
         H2 title = new H2();
-        Icon hospitalIcon = VaadinIcon.HOSPITAL.create();
-        hospitalIcon.getStyle().set("color", "white");
-        title.add(hospitalIcon);
-        title.add("   RIS Sahty");
         title.addClassNames("text-truncate", "m-0");
         title.getStyle()
                 .set("color", "white")
                 .set("font-size", "1.5rem")
                 .set("font-weight", "600")
-                .set("margin-top", "8px");
+                .set("margin-top", "8px")
+                .set("display", "flex")
+                .set("align-items", "center")
+                .set("gap", "12px");
+
+        Image logoImage = new Image("images/sahty.jpeg", "RIS Sahty Logo");
+        logoImage.setHeight("40px");
+        logoImage.setWidth("40px");
+        logoImage.getStyle()
+                .set("border-radius", "8px")
+                .set("flex-shrink", "0")
+                .set("margin-right", "8px")
+                .set("margin-left", "8px");
+        
+        title.add(logoImage);
+        title.add("RIS Sahty");
 
         header.add(title);
         header.setFlexGrow(1, title);
@@ -548,6 +565,9 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        // Hook pour la navigation
+        // Configurer le WebSocket uniquement si l'utilisateur est connecté et sur une page protégée
+        if (SecurityUtils.isUserLoggedIn() && !event.getLocation().getPath().equals("/login")) {
+            setupWebSocketListener();
+        }
     }
 }

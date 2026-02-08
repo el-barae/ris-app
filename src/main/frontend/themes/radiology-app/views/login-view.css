@@ -163,3 +163,38 @@ vaadin-form-layout[empty] {
   min-width: 64px;
   min-height: 32px;
 }
+
+/* Fix for login form visibility */
+.login-view vaadin-login-form {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.login-view .login-form {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Force login form container to be visible */
+.login-view .login-form.card {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Ensure the form content is visible */
+.login-view vaadin-login-form::part(form) {
+  display: block !important;
+  visibility: visible !important;
+}
+
+.login-view vaadin-login-form::part(username-field),
+.login-view vaadin-login-form::part(password-field),
+.login-view vaadin-login-form::part(submit-button) {
+  display: block !important;
+  visibility: visible !important;
+}

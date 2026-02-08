@@ -2,11 +2,10 @@ package com.application.views;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.login.LoginForm;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -57,7 +56,21 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
             }
         });
         
+        // Forcer l'affichage immédiat du formulaire
         add(createLoginForm());
+        
+        // Forcer le rafraîchissement de l'UI après chargement
+        UI.getCurrent().getPage().executeJs(
+            "setTimeout(() => {" +
+            "  console.log('Forçage du rafraîchissement du formulaire de login');" +
+            "  const loginForm = document.querySelector('vaadin-login-form');" +
+            "  if (loginForm) {" +
+            "    loginForm.style.display = 'block';" +
+            "    loginForm.style.visibility = 'visible';" +
+            "    console.log('Formulaire de login rendu visible');" +
+            "  }" +
+            "}, 100);"
+        );
     }
 
     private Component createLoginForm() {
@@ -87,23 +100,27 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         Div titleContainer = new Div();
         titleContainer.getStyle()
             .set("text-align", "center")
-            .set("margin-bottom", "1.5rem");
+            .set("margin-bottom", "1.5rem")
+            .set("display", "flex")
+            .set("flex-direction", "column")
+            .set("align-items", "center")
+            .set("gap", "1rem");
         
-        Icon hospitalIcon = VaadinIcon.HOSPITAL.create();
-        hospitalIcon.setSize("60px");
-        hospitalIcon.getStyle()
-            .set("color", "#10b981")
-            .set("margin-bottom", "1rem")
-            .set("display", "block")
-            .set("margin-left", "auto")
-            .set("margin-right", "auto");
+        Image logoImage = new Image("images/sahty.jpeg", "RIS Sahty Logo");
+        logoImage.setHeight("80px");
+        logoImage.setWidth("80px");
+        logoImage.getStyle()
+            .set("border-radius", "12px")
+            .set("box-shadow", "0 4px 16px rgba(16, 185, 129, 0.2)")
+            .set("flex-shrink", "0")
+            .set("margin-top", "10rem");
         
         H1 title = new H1("RIS Sahty");
         title.getStyle()
             .set("color", "#10b981")
             .set("font-size", "2rem")
             .set("font-weight", "700")
-            .set("margin", "0 0 0.5rem 0")
+            .set("margin", "0")
             .set("text-align", "center");
 
         H3 subtitle = new H3("Connexion");
@@ -111,7 +128,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
             .set("color", "#6b7280")
             .set("font-size", "1.2rem")
             .set("font-weight", "500")
-            .set("margin", "0 0 2rem 0")
+            .set("margin", "0 0 1rem 0")
             .set("text-align", "center");
 
         loginForm.addClassNames("w-full");
@@ -151,7 +168,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         
         testAccountsContainer.add(testAccountsTitle, testAccounts);
 
-        formLayout.add(titleContainer, hospitalIcon, title, subtitle, loginForm, testAccountsContainer);
+        formLayout.add(titleContainer, logoImage, title, subtitle, loginForm, testAccountsContainer);
 
         loginContainer.add(formLayout);
         return loginContainer;

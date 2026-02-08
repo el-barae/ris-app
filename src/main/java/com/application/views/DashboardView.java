@@ -8,6 +8,7 @@ import com.application.service.ExamService;
 import com.application.service.PatientService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
@@ -163,21 +164,21 @@ public class DashboardView extends VerticalLayout {
         // Boutons selon le rôle
         if (SecurityUtils.hasAnyRole(UserRole.ADMIN, UserRole.MEDECIN, UserRole.SECRETAIRE)) {
             Button newPatientBtn = new Button("Nouveau patient", VaadinIcon.PLUS.create());
-            newPatientBtn.addClassNames("primary");
+            newPatientBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             newPatientBtn.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("patients")));
             actionsLayout.add(newPatientBtn);
         }
 
         if (SecurityUtils.hasAnyRole(UserRole.ADMIN, UserRole.MEDECIN, UserRole.SECRETAIRE)) {
             Button newExamBtn = new Button("Nouvel examen", VaadinIcon.PLUS.create());
-            newExamBtn.addClassNames("primary");
+            newExamBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
             newExamBtn.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("exams")));
             actionsLayout.add(newExamBtn);
         }
 
         if (SecurityUtils.hasAnyRole(UserRole.ADMIN, UserRole.TECHNICIEN)) {
             Button mwlBtn = new Button("Worklist MWL", VaadinIcon.LIST.create());
-            mwlBtn.addClassNames("secondary");
+            mwlBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
             mwlBtn.addClickListener(e -> getUI().ifPresent(ui -> ui.navigate("mwl")));
             actionsLayout.add(mwlBtn);
         }

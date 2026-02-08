@@ -3,6 +3,7 @@ package com.application.views.dialog;
 import com.application.entity.Gender;
 import com.application.entity.Patient;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -106,10 +107,10 @@ public class PatientDialog extends Dialog {
         buttonLayout.addClassNames("mt-m", "gap-s");
         
         Button cancelButton = new Button("Annuler", e -> close());
-        cancelButton.addClassNames("button-secondary");
+        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         
         Button saveButton = new Button("Enregistrer", e -> savePatient());
-        saveButton.addClassNames("button-primary");
+        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         
         buttonLayout.add(cancelButton, saveButton);
         
