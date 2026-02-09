@@ -422,8 +422,17 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
                 .set("color", "white")
                 .set("border", "1px solid rgba(255,255,255,0.3)");
         logoutButton.addClickListener(e -> {
+            // Nettoyer complètement avant déconnexion
             SecurityUtils.logout();
-            getUI().ifPresent(ui -> ui.navigate("login"));
+            
+            // Forcer la redirection après un court délai pour s'assurer que tout est nettoyé
+            getUI().ifPresent(ui -> {
+                ui.getPage().executeJs(
+                    "setTimeout(function() {" +
+                    "  window.location.href = '/login';" +
+                    "}, 100);"
+                );
+            });
         });
 
         userSection.add(avatar, userName, logoutButton);

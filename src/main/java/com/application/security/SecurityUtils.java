@@ -86,7 +86,19 @@ public class SecurityUtils {
     }
 
     public static void logout() {
+        // Nettoyer complètement le contexte de sécurité
         SecurityContextHolder.clearContext();
+        
+        // Forcer la redirection vers login pour nettoyer complètement l'état
+        try {
+            com.vaadin.flow.component.UI.getCurrent().getPage().executeJs(
+                "localStorage.clear();" +
+                "sessionStorage.clear();" +
+                "window.location.href = '/login';"
+            );
+        } catch (Exception e) {
+            // Ignorer les erreurs UI
+        }
     }
 
     // Méthodes utilitaires supplémentaires

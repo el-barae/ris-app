@@ -23,7 +23,7 @@ import com.application.security.SecurityUtils;
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     private final LoginForm loginForm = new LoginForm();
-    private final VaadinAuthService authService;
+    protected final VaadinAuthService authService;
 
     public LoginView(VaadinAuthService authService) {
         this.authService = authService;
@@ -56,20 +56,64 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
             }
         });
         
-        // Forcer l'affichage immédiat du formulaire
+        // Ajouter le formulaire immédiatement
         add(createLoginForm());
         
-        // Forcer le rafraîchissement de l'UI après chargement
+        // Forcer l'affichage immédiat du formulaire avec plusieurs approches
         UI.getCurrent().getPage().executeJs(
-            "setTimeout(() => {" +
-            "  console.log('Forçage du rafraîchissement du formulaire de login');" +
-            "  const loginForm = document.querySelector('vaadin-login-form');" +
-            "  if (loginForm) {" +
-            "    loginForm.style.display = 'block';" +
-            "    loginForm.style.visibility = 'visible';" +
-            "    console.log('Formulaire de login rendu visible');" +
-            "  }" +
-            "}, 100);"
+            "// Forcer l'affichage du formulaire de login\n" +
+            "function forceShowLoginForm() {\n" +
+            "  console.log('Tentative d\\'affichage du formulaire de login');\n" +
+            "  \n" +
+            "  // Attendre que le DOM soit prêt\n" +
+            "  const checkAndShow = () => {\n" +
+            "    const loginForm = document.querySelector('vaadin-login-form');\n" +
+            "    const loginOverlay = document.querySelector('vaadin-login-overlay-wrapper');\n" +
+            "    \n" +
+            "    if (loginForm) {\n" +
+            "      console.log('Formulaire trouvé, forçage affichage');\n" +
+            "      loginForm.style.display = 'block';\n" +
+            "      loginForm.style.visibility = 'visible';\n" +
+            "      loginForm.style.opacity = '1';\n" +
+            "      \n" +
+            "      // Forcer le rafraîchissement du composant\n" +
+            "      if (loginForm.requestUpdate) {\n" +
+            "        loginForm.requestUpdate();\n" +
+            "      }\n" +
+            "    }\n" +
+            "    \n" +
+            "    if (loginOverlay) {\n" +
+            "      loginOverlay.style.display = 'block';\n" +
+            "      loginOverlay.style.visibility = 'visible';\n" +
+            "    }\n" +
+            "    \n" +
+            "    // Forcer le rafraîchissement de la page si le formulaire n'est pas visible\n" +
+            "    const container = document.querySelector('.login-form');\n" +
+            "    if (container && container.offsetParent === null) {\n" +
+            "      console.log('Conteneur caché, forçage affichage');\n" +
+            "      container.style.display = 'block';\n" +
+            "      container.style.visibility = 'visible';\n" +
+            "      container.style.position = 'relative';\n" +
+            "    }\n" +
+            "  };\n" +
+            "  \n" +
+            "  // Vérifier immédiatement puis toutes les 100ms pendant 2 secondes\n" +
+            "  checkAndShow();\n" +
+            "  let attempts = 0;\n" +
+            "  const interval = setInterval(() => {\n" +
+            "    checkAndShow();\n" +
+            "    attempts++;\n" +
+            "    if (attempts > 20) clearInterval(interval);\n" +
+            "  }, 100);\n" +
+            "}\n" +
+            "\n" +
+            "// Exécuter immédiatement et au chargement du DOM\n" +
+            "forceShowLoginForm();\n" +
+            "if (document.readyState === 'loading') {\n" +
+            "  document.addEventListener('DOMContentLoaded', forceShowLoginForm);\n" +
+            "} else {\n" +
+            "  setTimeout(forceShowLoginForm, 50);\n" +
+            "}"
         );
     }
 
@@ -80,7 +124,9 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         loginContainer.setWidth("100%");
         loginContainer.getStyle()
             .set("margin", "0 auto")
-            .set("display", "block");
+            .set("display", "flex")
+            .set("justify-content", "center")
+            .set("align-items", "center");
         
         // Style du conteneur
         loginContainer.getStyle()
@@ -95,6 +141,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
         formLayout.setSpacing(true);
         formLayout.setPadding(false);
         formLayout.setAlignItems(Alignment.CENTER);
+        formLayout.setWidth("100%");
 
         // Logo et titre
         Div titleContainer = new Div();
@@ -104,16 +151,18 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
             .set("display", "flex")
             .set("flex-direction", "column")
             .set("align-items", "center")
-            .set("gap", "1rem");
+            .set("gap", "1rem")
+            .set("width", "100%");
         
         Image logoImage = new Image("images/sahty.jpeg", "RIS Sahty Logo");
-        logoImage.setHeight("80px");
-        logoImage.setWidth("80px");
+        logoImage.setHeight("70px");
+        logoImage.setWidth("70px");
         logoImage.getStyle()
             .set("border-radius", "12px")
             .set("box-shadow", "0 4px 16px rgba(16, 185, 129, 0.2)")
             .set("flex-shrink", "0")
-            .set("margin-top", "10rem");
+            .set("margin", "8rem 0 0 0")
+            .set("align-self", "center");
         
         H1 title = new H1("RIS Sahty");
         title.getStyle()
@@ -121,7 +170,8 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
             .set("font-size", "2rem")
             .set("font-weight", "700")
             .set("margin", "0")
-            .set("text-align", "center");
+            .set("text-align", "center")
+            .set("align-self", "center");
 
         H3 subtitle = new H3("Connexion");
         subtitle.getStyle()
@@ -133,7 +183,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
         loginForm.addClassNames("w-full");
         
-        // Style du formulaire
+        // Style du formulaire pour centrage horizontal
         loginForm.getStyle()
             .set("--vaadin-input-field-border-width", "2px")
             .set("--vaadin-input-field-border-color", "#e5e7eb")
@@ -141,7 +191,10 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
             .set("--vaadin-button-primary-background", "#10b981")
             .set("--vaadin-button-primary-focus-background", "#059669")
             .set("--vaadin-button-primary-border-color", "#10b981")
-            .set("--vaadin-button-primary-text-color", "white");
+            .set("--vaadin-button-primary-text-color", "white")
+            .set("margin", "0 auto")
+            .set("width", "100%")
+            .set("max-width", "400px");
 
         // Comptes de test
         Div testAccountsContainer = new Div();
@@ -150,21 +203,25 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
             .set("border-radius", "8px")
             .set("padding", "1rem")
             .set("margin-top", "1.5rem")
-            .set("border", "1px solid #e5e7eb");
+            .set("border", "1px solid #e5e7eb")
+            .set("width", "100%")
+            .set("text-align", "center");
         
         Paragraph testAccountsTitle = new Paragraph("Comptes de test :");
         testAccountsTitle.getStyle()
             .set("color", "#374151")
             .set("font-weight", "600")
             .set("margin", "0 0 0.5rem 0")
-            .set("font-size", "0.9rem");
+            .set("font-size", "0.9rem")
+            .set("text-align", "center");
         
         Paragraph testAccounts = new Paragraph("admin/admin123 | medecin/medecin123 | radiologue/radio123");
         testAccounts.getStyle()
             .set("color", "#6b7280")
             .set("font-size", "0.85rem")
             .set("margin", "0")
-            .set("line-height", "1.4");
+            .set("line-height", "1.4")
+            .set("text-align", "center");
         
         testAccountsContainer.add(testAccountsTitle, testAccounts);
 

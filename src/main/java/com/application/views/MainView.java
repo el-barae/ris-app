@@ -1,6 +1,7 @@
 package com.application.views;
 
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
@@ -10,13 +11,13 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.server.VaadinServletRequest;
 import com.vaadin.flow.component.UI;
 import com.application.security.SecurityUtils;
-import jakarta.servlet.http.HttpServletRequest;
 
 @Route("")
+@RouteAlias("/")
 @PageTitle("RIS Radiologie")
+@AnonymousAllowed
 public class MainView extends VerticalLayout implements BeforeEnterObserver {
 
     public MainView() {
@@ -56,14 +57,36 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
+        // Debug: vérifier l'état de l'authentification
+        boolean isLoggedIn = SecurityUtils.isUserLoggedIn();
+        System.out.println("DEBUG: User logged in? " + isLoggedIn);
+        
         // Vérifier si l'utilisateur est authentifié
-        if (!SecurityUtils.isUserLoggedIn()) {
-            // Rediriger vers la page de login
+        if (!isLoggedIn) {
+            System.out.println("DEBUG: Redirecting to login...");
+            // Rediriger vers la page de login avec JavaScript comme fallback
             UI.getCurrent().navigate("login");
+            
+            // Forcer la redirection avec JavaScript si la navigation Vaadin ne fonctionne pas
+            UI.getCurrent().getPage().executeJs(
+                "setTimeout(function() {" +
+                "  console.log('DEBUG: JavaScript redirect to login');" +
+                "  window.location.href = '/login';" +
+                "}, 500);"
+            );
             return;
         }
         
+        System.out.println("DEBUG: User is logged in, redirecting to dashboard...");
         // Si authentifié, rediriger vers le dashboard
         UI.getCurrent().navigate("dashboard");
+        
+        // Forcer la redirection avec JavaScript comme fallback
+        UI.getCurrent().getPage().executeJs(
+            "setTimeout(function() {" +
+            "  console.log('DEBUG: JavaScript redirect to dashboard');" +
+            "  window.location.href = '/dashboard';" +
+            "}, 500);"
+        );
     }
 }
