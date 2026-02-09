@@ -214,7 +214,7 @@ public class PatientView extends VerticalLayout {
         // Bouton modifier
         if (canModify()) {
             Button editBtn = new Button(VaadinIcon.EDIT.create());
-            editBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            editBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
             editBtn.getElement().setProperty("title", "Modifier");
             editBtn.addClickListener(e -> {
                 openEditDialog(patient);
