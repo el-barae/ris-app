@@ -21,7 +21,7 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure WHERE e.id = :id")
     Optional<Exam> findByIdWithRelations(Long id);
     
-    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure WHERE e.status = :status")
+    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure LEFT JOIN FETCH e.modality LEFT JOIN FETCH e.modality.modalityType WHERE e.status = :status")
     List<Exam> findByStatusWithRelations(ExamStatus status);
     
     @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure WHERE e.medecin.id = :medecinId")

@@ -55,4 +55,9 @@ public class Modality {
     @OneToMany(mappedBy = "modality", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @EqualsAndHashCode.Exclude
     private List<Exam> exams;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id")
+    @EqualsAndHashCode.Exclude
+    private Room room;
 }

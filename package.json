@@ -4,6 +4,8 @@
   "type": "module",
   "dependencies": {
     "@polymer/polymer": "3.5.1",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
     "@vaadin/a11y-base": "24.3.1",
     "@vaadin/accordion": "24.3.1",
     "@vaadin/app-layout": "24.3.1",
@@ -48,7 +50,7 @@
     "@vaadin/polymer-legacy-adapter": "24.3.1",
     "@vaadin/progress-bar": "24.3.1",
     "@vaadin/radio-group": "24.3.1",
-    "@vaadin/router": "1.7.5",
+    "@vaadin/router": "^1.7.5",
     "@vaadin/scroller": "24.3.1",
     "@vaadin/select": "24.3.1",
     "@vaadin/side-nav": "24.3.1",
@@ -69,7 +71,9 @@
     "@vaadin/virtual-list": "24.3.1",
     "construct-style-sheets-polyfill": "3.1.0",
     "date-fns": "2.29.3",
-    "lit": "3.1.0"
+    "lit": "3.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@rollup/plugin-replace": "5.0.4",
@@ -160,7 +164,11 @@
     "lit": "$lit",
     "@polymer/polymer": "$@polymer/polymer",
     "@vaadin/vaadin-themable-mixin": "$@vaadin/vaadin-themable-mixin",
-    "date-fns": "$date-fns"
+    "date-fns": "$date-fns",
+    "@types/react": "$@types/react",
+    "@types/react-dom": "$@types/react-dom",
+    "react": "$react",
+    "react-dom": "$react-dom"
   },
   "vaadin": {
     "dependencies": {
@@ -250,6 +258,6 @@
       "workbox-core": "7.0.0",
       "workbox-precaching": "7.0.0"
     },
-    "hash": "b5cd2321ff0cd8d1cd63fd98e27f5b59cf00cec2635eb4a4ec54a9f78d0d53ee"
+    "hash": "93f82948b353abda7fde3e728bfa0c2233e11cd8d009902c3f7e9e65e31dc4af"
   }
 }

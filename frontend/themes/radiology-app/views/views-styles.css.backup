@@ -1,0 +1,432 @@
+/* Padding responsive pour toutes les vues */
+
+/* Styles globaux pour les vues */
+vaadin-vertical-layout[class*="-view"] {
+  padding: var(--lumo-space-m);
+}
+
+/* Padding responsive pour mobile */
+@media (max-width: 768px) {
+  vaadin-vertical-layout[class*="-view"] {
+    padding: var(--lumo-space-s);
+  }
+}
+
+/* Padding responsive pour desktop */
+@media (min-width: 1024px) {
+  vaadin-vertical-layout[class*="-view"] {
+    padding: var(--lumo-space-l);
+  }
+}
+
+/* Padding pour les écrans larges */
+@media (min-width: 1440px) {
+  vaadin-vertical-layout[class*="-view"] {
+    padding: var(--lumo-space-xl);
+  }
+}
+
+/* Styles spécifiques pour les vues principales */
+.exam-view,
+.patient-view,
+.report-view,
+.mwl-view,
+.settings-view,
+.dashboard-view {
+  padding: var(--lumo-space-m);
+}
+
+/* Responsive pour les grilles */
+vaadin-grid {
+  margin: var(--lumo-space-s) 0;
+}
+
+/* Responsive pour les formulaires */
+vaadin-form-layout {
+  padding: var(--lumo-space-m);
+  border-radius: var(--lumo-border-radius-m);
+  background-color: var(--lumo-contrast-5pct);
+}
+
+/* Responsive pour les dialogues */
+vaadin-dialog-overlay::part(dialog) {
+  padding: var(--lumo-space-m);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .exam-view,
+  .patient-view,
+  .report-view,
+  .mwl-view,
+  .settings-view,
+  .dashboard-view {
+    padding: var(--lumo-space-s);
+  }
+  
+  vaadin-form-layout {
+    padding: var(--lumo-space-s);
+  }
+  
+  vaadin-grid {
+    margin: var(--lumo-space-xs) 0;
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 1024px) {
+  .exam-view,
+  .patient-view,
+  .report-view,
+  .mwl-view,
+  .settings-view,
+  .dashboard-view {
+    padding: var(--lumo-space-l);
+  }
+  
+  vaadin-form-layout {
+    padding: var(--lumo-space-l);
+  }
+  
+  vaadin-grid {
+    margin: var(--lumo-space-m) 0;
+  }
+}
+
+/* Large screen adjustments */
+@media (min-width: 1440px) {
+  .exam-view,
+  .patient-view,
+  .report-view,
+  .mwl-view,
+  .settings-view,
+  .dashboard-view {
+    padding: var(--lumo-space-xl);
+  }
+  
+  vaadin-form-layout {
+    padding: var(--lumo-space-xl);
+  }
+  
+  vaadin-grid {
+    margin: var(--lumo-space-l) 0;
+  }
+}
+
+/* Header spacing */
+.view-header {
+  margin-bottom: var(--lumo-space-m);
+  padding: var(--lumo-space-m);
+  background-color: var(--lumo-contrast-5pct);
+  border-radius: var(--lumo-border-radius-m);
+}
+
+@media (max-width: 768px) {
+  .view-header {
+    margin-bottom: var(--lumo-space-s);
+    padding: var(--lumo-space-s);
+  }
+}
+
+@media (min-width: 1024px) {
+  .view-header {
+    margin-bottom: var(--lumo-space-l);
+    padding: var(--lumo-space-l);
+  }
+}
+
+/* Content container */
+.content-container {
+  padding: var(--lumo-space-m);
+  border-radius: var(--lumo-border-radius-m);
+  background-color: var(--lumo-base-color);
+}
+
+@media (max-width: 768px) {
+  .content-container {
+    padding: var(--lumo-space-s);
+  }
+}
+
+@media (min-width: 1024px) {
+  .content-container {
+    padding: var(--lumo-space-l);
+  }
+}
+
+@media (min-width: 1440px) {
+  .content-container {
+    padding: var(--lumo-space-xl);
+  }
+}
+
+/* Button styling fixes for Vaadin 24.3.1+ */
+/* Fix for primary buttons - ensure proper contrast */
+.dashboard-view vaadin-button[theme~="primary"],
+.patient-view vaadin-button[theme~="primary"],
+.settings-view vaadin-button[theme~="primary"] {
+  background-color: var(--lumo-primary-color) !important;
+  color: var(--lumo-primary-contrast-color) !important;
+  font-weight: 500;
+}
+
+/* Fix for secondary buttons */
+.dashboard-view vaadin-button[theme~="secondary"],
+.patient-view vaadin-button[theme~="secondary"],
+.settings-view vaadin-button[theme~="secondary"] {
+  background-color: var(--lumo-contrast-20pct) !important;
+  color: var(--lumo-contrast-color) !important;
+  font-weight: 500;
+}
+
+/* Fix for tertiary buttons */
+.dashboard-view vaadin-button[theme~="tertiary"],
+.patient-view vaadin-button[theme~="tertiary"],
+.settings-view vaadin-button[theme~="tertiary"] {
+  background-color: transparent !important;
+  color: var(--lumo-primary-color) !important;
+  font-weight: 500;
+}
+
+/* Fix for error buttons */
+.dashboard-view vaadin-button[theme~="error"],
+.patient-view vaadin-button[theme~="error"],
+.settings-view vaadin-button[theme~="error"] {
+  background-color: var(--lumo-error-color) !important;
+  color: var(--lumo-error-contrast-color) !important;
+  font-weight: 500;
+}
+
+/* Fix for small icon buttons - enhanced visibility */
+.dashboard-view vaadin-button[theme~="small"],
+.patient-view vaadin-button[theme~="small"],
+.settings-view vaadin-button[theme~="small"] {
+  min-width: auto;
+  padding: var(--lumo-space-xs) var(--lumo-space-s);
+  background-color: var(--lumo-contrast-10pct) !important;
+  color: var(--lumo-contrast-color) !important;
+  border: 1px solid var(--lumo-contrast-30pct) !important;
+}
+
+/* Specific fix for icon buttons in patient view */
+.patient-view vaadin-button[theme~="small"][theme~="tertiary"] {
+  background-color: var(--lumo-contrast-10pct) !important;
+  color: var(--lumo-contrast-color) !important;
+  border: 1px solid var(--lumo-contrast-30pct) !important;
+}
+
+.patient-view vaadin-button[theme~="small"][theme~="error"] {
+  background-color: var(--lumo-error-color-10pct) !important;
+  color: var(--lumo-error-color) !important;
+  border: 1px solid var(--lumo-error-color-30pct) !important;
+}
+
+/* Specific fix for the "Nouveau patient" button */
+.patient-view vaadin-button[theme~="primary"] {
+  background-color: var(--lumo-primary-color) !important;
+  color: var(--lumo-primary-contrast-color) !important;
+  font-weight: 600;
+  border: none !important;
+}
+
+/* Enhanced hover states for icon buttons */
+.patient-view vaadin-button[theme~="small"][theme~="tertiary"]:hover {
+  background-color: var(--lumo-contrast-20pct) !important;
+  border-color: var(--lumo-contrast-50pct) !important;
+}
+
+.patient-view vaadin-button[theme~="small"][theme~="error"]:hover {
+  background-color: var(--lumo-error-color) !important;
+  color: var(--lumo-error-contrast-color) !important;
+  border-color: var(--lumo-error-color) !important;
+}
+
+/* Additional fix for icon visibility - ensure icons are visible */
+.patient-view vaadin-button[theme~="small"]::before,
+.patient-view vaadin-button[theme~="small"]::after,
+.patient-view vaadin-button[theme~="small"] svg {
+  fill: currentColor !important;
+  color: inherit !important;
+}
+
+/* Force icon colors for edit and delete buttons */
+.patient-view vaadin-button[theme~="small"][theme~="tertiary"] svg {
+  fill: var(--lumo-contrast-color) !important;
+}
+
+.patient-view vaadin-button[theme~="small"][theme~="error"] svg {
+  fill: var(--lumo-error-color) !important;
+}
+
+/* Enhanced fix for patient view edit buttons - use PRIMARY like ExamView */
+.patient-view vaadin-button[theme~="small"][theme~="primary"] {
+  background-color: #10b981 !important;
+  color: white !important;
+  border: 2px solid #059669 !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  border-radius: 6px !important;
+}
+
+.patient-view vaadin-button[theme~="small"][theme~="primary"]:hover {
+  background-color: #059669 !important;
+  border-color: #047857 !important;
+}
+
+/* Force edit icon to be visible */
+.patient-view vaadin-button[theme~="small"][theme~="primary"] svg,
+.patient-view vaadin-button[theme~="small"][theme~="primary"] iron-icon {
+  fill: white !important;
+  color: white !important;
+  opacity: 1 !important;
+}
+
+/* Enhanced fix for delete buttons */
+.patient-view vaadin-button[theme~="small"][theme~="error"] {
+  background-color: #fef2f2 !important;
+  color: #dc2626 !important;
+  border: 2px solid #fca5a5 !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  border-radius: 6px !important;
+}
+
+.patient-view vaadin-button[theme~="small"][theme~="error"]:hover {
+  background-color: #fee2e2 !important;
+  border-color: #ef4444 !important;
+}
+
+.patient-view vaadin-button[theme~="small"][theme~="error"] svg {
+  fill: #dc2626 !important;
+  color: #dc2626 !important;
+  opacity: 1 !important;
+}
+
+/* Emergency fix for dialog cancel button */
+vaadin-dialog-overlay vaadin-button[theme~="tertiary"] {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+  border: 2px solid #9ca3af !important;
+}
+
+vaadin-dialog-overlay vaadin-button[theme~="tertiary"] span {
+  color: #374151 !important;
+}
+
+/* Make sure all buttons in patient view have proper contrast */
+.patient-view vaadin-button {
+  background-color: var(--lumo-contrast-10pct) !important;
+  color: var(--lumo-contrast-color) !important;
+  border: 1px solid var(--lumo-contrast-30pct) !important;
+}
+
+/* Override for primary buttons in patient view */
+.patient-view vaadin-button[theme~="primary"] {
+  background-color: var(--lumo-primary-color) !important;
+  color: var(--lumo-primary-contrast-color) !important;
+  border: none !important;
+}
+
+/* Enhanced fixes for dialog buttons */
+vaadin-dialog-overlay vaadin-button[theme~="primary"] {
+  background-color: #10b981 !important;
+  color: white !important;
+  border: 2px solid #059669 !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+}
+
+vaadin-dialog-overlay vaadin-button[theme~="primary"]:hover {
+  background-color: #059669 !important;
+  border-color: #047857 !important;
+}
+
+vaadin-dialog-overlay vaadin-button[theme~="tertiary"] {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+  border: 2px solid #9ca3af !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+}
+
+vaadin-dialog-overlay vaadin-button[theme~="tertiary"]:hover {
+  background-color: #e5e7eb !important;
+  border-color: #6b7280 !important;
+}
+
+/* Force dialog button text and icons to be visible */
+vaadin-dialog-overlay vaadin-button {
+  color: inherit !important;
+}
+
+vaadin-dialog-overlay vaadin-button[theme~="primary"] span {
+  color: white !important;
+}
+
+vaadin-dialog-overlay vaadin-button[theme~="tertiary"] span {
+  color: #374151 !important;
+}
+
+vaadin-dialog-overlay vaadin-button svg {
+  fill: currentColor !important;
+  color: inherit !important;
+}
+
+/* Fix for any remaining icon buttons in dialogs */
+vaadin-dialog-overlay vaadin-button[theme~="small"] {
+  background-color: var(--lumo-contrast-10pct) !important;
+  color: var(--lumo-contrast-color) !important;
+  border: 1px solid var(--lumo-contrast-30pct) !important;
+}
+
+vaadin-dialog-overlay vaadin-button[theme~="small"] svg {
+  fill: currentColor !important;
+}
+
+/* Enhanced fixes for all primary buttons */
+.dashboard-view vaadin-button[theme~="primary"],
+.settings-view vaadin-button[theme~="primary"] {
+  background-color: #10b981 !important;
+  color: white !important;
+  border: 2px solid #059669 !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+}
+
+.dashboard-view vaadin-button[theme~="primary"]:hover,
+.settings-view vaadin-button[theme~="primary"]:hover {
+  background-color: #059669 !important;
+  border-color: #047857 !important;
+}
+
+/* Enhanced fixes for all tertiary buttons */
+.dashboard-view vaadin-button[theme~="tertiary"],
+.settings-view vaadin-button[theme~="tertiary"] {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+  border: 2px solid #9ca3af !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+}
+
+.dashboard-view vaadin-button[theme~="tertiary"]:hover,
+.settings-view vaadin-button[theme~="tertiary"]:hover {
+  background-color: #e5e7eb !important;
+  border-color: #6b7280 !important;
+}
+
+/* Enhanced fixes for all error buttons */
+.dashboard-view vaadin-button[theme~="error"],
+.settings-view vaadin-button[theme~="error"] {
+  background-color: #fef2f2 !important;
+  color: #dc2626 !important;
+  border: 2px solid #fca5a5 !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+}
+
+.dashboard-view vaadin-button[theme~="error"]:hover,
+.settings-view vaadin-button[theme~="error"]:hover {
+  background-color: #fee2e2 !important;
+  border-color: #ef4444 !important;
+}

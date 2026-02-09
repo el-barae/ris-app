@@ -1,0 +1,67 @@
+/* Simple button fixes for Vaadin */
+
+/* Primary buttons */
+vaadin-button[theme~="primary"] {
+  background: #10b981 !important;
+  color: white !important;
+  border-color: #059669 !important;
+}
+
+vaadin-button[theme~="primary"]:hover {
+  background: #059669 !important;
+}
+
+/* Tertiary buttons */
+vaadin-button[theme~="tertiary"] {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+  border-color: #9ca3af !important;
+}
+
+vaadin-button[theme~="tertiary"]:hover {
+  background: #e5e7eb !important;
+}
+
+/* Error buttons */
+vaadin-button[theme~="error"] {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+
+vaadin-button[theme~="error"]:hover {
+  background: #fee2e2 !important;
+}
+
+/* Small buttons */
+vaadin-button[theme~="small"] {
+  min-width: 32px !important;
+  min-height: 32px !important;
+}
+
+/* Icons */
+vaadin-button svg {
+  fill: currentColor !important;
+}
+
+/* Grid buttons */
+vaadin-grid vaadin-button[theme~="primary"] {
+  background: #10b981 !important;
+  color: white !important;
+}
+
+vaadin-grid vaadin-button[theme~="tertiary"] {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+/* Dialog buttons */
+vaadin-dialog-overlay vaadin-button[theme~="primary"] {
+  background: #10b981 !important;
+  color: white !important;
+}
+
+vaadin-dialog-overlay vaadin-button[theme~="tertiary"] {
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+}
