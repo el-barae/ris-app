@@ -57,6 +57,11 @@ public class Modality {
     private List<Exam> exams;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hospital_id")
+    @EqualsAndHashCode.Exclude
+    private Hospital hospital;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id")
     @EqualsAndHashCode.Exclude
     private Room room;

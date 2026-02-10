@@ -43,6 +43,11 @@ public class User {
     @Column(nullable = false)
     private Boolean active = true;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hospital_id")
+    @EqualsAndHashCode.Exclude
+    private Hospital hospital;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

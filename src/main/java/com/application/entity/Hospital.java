@@ -13,12 +13,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "rooms")
+@Table(name = "hospitals")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Room {
+public class Hospital {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,17 +27,37 @@ public class Room {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "location_code", nullable = false)
-    private String locationCode;
+    @Column(columnDefinition = "TEXT")
+    private String address;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hospital_id")
-    @EqualsAndHashCode.Exclude
-    private Hospital hospital;
+    private String city;
 
-    @OneToMany(mappedBy = "room", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @Column(name = "postal_code")
+    private String postalCode;
+
+    private String country;
+
+    private String phone;
+
+    private String email;
+
+    @Column(name = "website")
+    private String website;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
+    @OneToMany(mappedBy = "hospital", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @EqualsAndHashCode.Exclude
-    private List<Modality> modalityResources;
+    private List<Room> rooms;
+
+    @OneToMany(mappedBy = "hospital", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @EqualsAndHashCode.Exclude
+    private List<Modality> modalities;
+
+    @OneToMany(mappedBy = "hospital", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @EqualsAndHashCode.Exclude
+    private List<User> users;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

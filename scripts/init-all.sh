@@ -92,19 +92,24 @@ psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -f "$SCRIPT_DIR/01-create-databas
 print_success "Base de données créée avec succès"
 
 # 2. Création des tables
-print_status "Étape 2/4: Création des tables..."
+print_status "Étape 2/5: Création des tables..."
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SCRIPT_DIR/02-create-tables.sql"
 print_success "Tables créées avec succès"
 
 # 3. Insertion des données initiales
-print_status "Étape 3/4: Insertion des données initiales..."
+print_status "Étape 3/5: Insertion des données initiales..."
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SCRIPT_DIR/03-insert-initial-data.sql"
 print_success "Données initiales insérées avec succès"
 
 # 4. Création de la table Flyway
-print_status "Étape 4/4: Création de la table Flyway..."
+print_status "Étape 4/5: Création de la table Flyway..."
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SCRIPT_DIR/04-create-flyway-table.sql"
 print_success "Table Flyway créée avec succès"
+
+# 5. Ajout de l'entité Hospital (migration)
+print_status "Étape 5/5: Ajout de l'entité Hospital..."
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SCRIPT_DIR/05-add-hospital-entity.sql"
+print_success "Entité Hospital ajoutée avec succès"
 
 # Afficher un résumé
 echo ""
@@ -113,6 +118,8 @@ echo ""
 echo "📊 Résumé de la base de données:"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
 SELECT 
+    'hospitals' as table_name, COUNT(*) as count FROM hospitals
+UNION ALL SELECT 
     'modality_types' as table_name, COUNT(*) as count FROM modality_types
 UNION ALL SELECT 
     'modalities', COUNT(*) FROM modalities
