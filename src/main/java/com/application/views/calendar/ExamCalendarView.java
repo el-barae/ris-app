@@ -46,8 +46,22 @@ public class ExamCalendarView {
     private void initializeDialog() {
         dialog = new Dialog();
         dialog.setHeaderTitle("📅 Calendrier des Examens");
-        dialog.setWidth("1200px");
-        dialog.setHeight("600px");
+        
+        // Ajouter les boutons dans le header
+        Button refreshBtn = new Button("Actualiser", VaadinIcon.REFRESH.create());
+        refreshBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        refreshBtn.addClickListener(e -> {
+            loadExams();
+            updateWeekCalendar();
+        });
+        
+        Button closeBtn = new Button("Fermer", e -> dialog.close());
+        closeBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        closeBtn.getStyle().set("margin-left", "auto").set("background-color", "red").set("color", "white");
+        
+        dialog.getHeader().add(refreshBtn, closeBtn);
+        dialog.setWidth("98vw");
+        dialog.setHeight("95vh");
         dialog.setModal(true);
         dialog.setDraggable(true);
 
@@ -82,15 +96,13 @@ public class ExamCalendarView {
 
         // Calendrier hebdomadaire
         weekCalendarLayout = new VerticalLayout();
-        weekCalendarLayout.setSpacing(false);
-        weekCalendarLayout.setPadding(false);
+        weekCalendarLayout.setHeight("100%");
+        weekCalendarLayout.setFlexGrow(1);
 
+        layout.setSizeFull();
+        layout.setFlexGrow(1, weekCalendarLayout);
+        
         layout.add(toolbar, weekCalendarLayout);
-
-        Button closeBtn = new Button("Fermer", e -> dialog.close());
-        closeBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        dialog.getFooter().add(closeBtn);
-
         dialog.add(layout);
 
         // Charger les données initiales
@@ -161,13 +173,13 @@ public class ExamCalendarView {
         com.vaadin.flow.component.html.Span dayNameSpan = new com.vaadin.flow.component.html.Span(dayName);
         dayNameSpan.getStyle()
                 .set("font-weight", "600")
-                .set("font-size", "12px")
+                .set("font-size", "14px")
                 .set("color", "#374151");
 
         com.vaadin.flow.component.html.Span dateSpan = new com.vaadin.flow.component.html.Span(
                 dayDate.format(DateTimeFormatter.ofPattern("dd/MM")));
         dateSpan.getStyle()
-                .set("font-size", "11px")
+                .set("font-size", "13px")
                 .set("color", "#6b7280");
 
         // Mettre en évidence aujourd'hui
@@ -205,7 +217,7 @@ public class ExamCalendarView {
                 .set("padding", "4px")
                 .set("margin", "2px 0")
                 .set("cursor", "pointer")
-                .set("font-size", "10px");
+                .set("font-size", "12px");
 
         String time = exam.getScheduledDateTime().format(DateTimeFormatter.ofPattern("HH:mm"));
         String patientName = exam.getPatient() != null ? 
@@ -218,7 +230,7 @@ public class ExamCalendarView {
         patientSpan.getStyle().set("color", "white");
         
         com.vaadin.flow.component.html.Span modalitySpan = new com.vaadin.flow.component.html.Span(exam.getModality());
-        modalitySpan.getStyle().set("color", "white").set("font-size", "9px");
+        modalitySpan.getStyle().set("color", "white").set("font-size", "11px");
 
         card.add(timeSpan, patientSpan, modalitySpan);
         card.addClickListener(e -> showExamDetails(exam));

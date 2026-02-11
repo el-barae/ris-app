@@ -590,6 +590,13 @@ public class SchedulingView extends VerticalLayout {
         
         // Créer un calendrier personnalisé pour cette modalité
         ModalityCalendarView calendarView = new ModalityCalendarView(examRepo, scheduleSlotRepo, selectedModality, filteredExams);
+        
+        // Configurer le callback pour réouvrir la sélection de modalité
+        calendarView.setOnModalityChangeCallback(() -> {
+            // Réouvrir le dialogue de sélection de modalité
+            showModalitySelectionDialog();
+        });
+        
         calendarView.show();
     }
 

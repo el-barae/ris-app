@@ -43,6 +43,7 @@ public class ModalityCalendarView {
     private List<ScheduleSlot> allSlots;
     private VerticalLayout weekCalendarLayout;
     private LocalDate currentWeekStart;
+    private Runnable onModalityChangeCallback;
 
     public ModalityCalendarView(ExamRepository examRepo, ScheduleSlotRepository scheduleSlotRepo, 
                                 Modality selectedModality, List<Exam> filteredExams) {
@@ -52,13 +53,41 @@ public class ModalityCalendarView {
         this.filteredExams = filteredExams;
         initializeDialog();
     }
+    
+    public void setOnModalityChangeCallback(Runnable callback) {
+        this.onModalityChangeCallback = callback;
+    }
 
     private void initializeDialog() {
         dialog = new Dialog();
         dialog.setHeaderTitle("📅 Calendrier - " + selectedModality.getNom() + 
                               " (" + selectedModality.getModalityType().getCode() + ")");
-        dialog.setWidth("1200px");
-        dialog.setHeight("600px");
+        
+        // Ajouter les boutons dans le header
+        Button changeModalityBtn = new Button("Changer de modalité", VaadinIcon.EXCHANGE.create());
+        changeModalityBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        changeModalityBtn.addClickListener(e -> {
+            dialog.close();
+            // Exécuter le callback pour réouvrir la sélection de modalité
+            if (onModalityChangeCallback != null) {
+                onModalityChangeCallback.run();
+            }
+        });
+        
+        Button refreshBtn = new Button("Actualiser", VaadinIcon.REFRESH.create());
+        refreshBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        refreshBtn.addClickListener(e -> {
+            loadSlots();
+            updateWeekCalendar();
+        });
+        
+        Button closeBtn = new Button("Fermer", e -> dialog.close());
+        closeBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        closeBtn.getStyle().set("margin-left", "20px").set("background-color", "red").set("color", "white");
+        
+        dialog.getHeader().add(changeModalityBtn, refreshBtn, closeBtn);
+        dialog.setWidth("98vw");
+        dialog.setHeight("95vh");
         dialog.setModal(true);
         dialog.setDraggable(true);
 
@@ -83,6 +112,7 @@ public class ModalityCalendarView {
 
         Button todayBtn = new Button("Aujourd'hui", VaadinIcon.CALENDAR.create());
         todayBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        todayBtn.getStyle().set("background-color", "darkred").set("color", "white");
         todayBtn.addClickListener(e -> {
             datePicker.setValue(LocalDate.now());
             updateWeekCalendar();
@@ -93,33 +123,13 @@ public class ModalityCalendarView {
 
         // Calendrier hebdomadaire
         weekCalendarLayout = new VerticalLayout();
-        weekCalendarLayout.setSpacing(false);
-        weekCalendarLayout.setPadding(false);
+        weekCalendarLayout.setHeight("100%");
+        weekCalendarLayout.setFlexGrow(1);
 
+        layout.setSizeFull();
+        layout.setFlexGrow(1, weekCalendarLayout);
+        
         layout.add(toolbar, weekCalendarLayout);
-
-        // Boutons d'action
-        HorizontalLayout buttonLayout = new HorizontalLayout();
-        buttonLayout.setSpacing(true);
-        
-        Button createSlotBtn = new Button("Créer un créneau", VaadinIcon.PLUS.create());
-        createSlotBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        createSlotBtn.addClickListener(e -> openCreateSlotDialog());
-        
-        Button refreshBtn = new Button("Actualiser", VaadinIcon.REFRESH.create());
-        refreshBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        refreshBtn.addClickListener(e -> {
-            loadSlots();
-            updateWeekCalendar();
-        });
-        
-        buttonLayout.add(createSlotBtn, refreshBtn);
-        layout.add(buttonLayout);
-
-        Button closeBtn = new Button("Fermer", e -> dialog.close());
-        closeBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        dialog.getFooter().add(closeBtn);
-
         dialog.add(layout);
 
         // Charger les données initiales
@@ -191,13 +201,13 @@ public class ModalityCalendarView {
         Span dayNameSpan = new Span(dayName);
         dayNameSpan.getStyle()
                 .set("font-weight", "600")
-                .set("font-size", "12px")
+                .set("font-size", "14px")
                 .set("color", "#374151");
 
         Span dateSpan = new Span(
                 dayDate.format(DateTimeFormatter.ofPattern("dd/MM")));
         dateSpan.getStyle()
-                .set("font-size", "11px")
+                .set("font-size", "13px")
                 .set("color", "#6b7280");
 
         // Mettre en évidence aujourd'hui
@@ -246,7 +256,7 @@ public class ModalityCalendarView {
                 .set("padding", "4px")
                 .set("margin", "2px 0")
                 .set("cursor", "pointer")
-                .set("font-size", "10px");
+                .set("font-size", "12px");
 
         String time = exam.getScheduledDateTime().format(DateTimeFormatter.ofPattern("HH:mm"));
         String patientName = exam.getPatient() != null ? 
@@ -259,7 +269,7 @@ public class ModalityCalendarView {
         patientSpan.getStyle().set("color", "white");
         
         Span modalitySpan = new Span(exam.getModalityEntity().getModalityType().getCode());
-        modalitySpan.getStyle().set("color", "white").set("font-size", "9px");
+        modalitySpan.getStyle().set("color", "white").set("font-size", "11px");
 
         card.add(timeSpan, patientSpan, modalitySpan);
         card.addClickListener(e -> showExamDetails(exam));
@@ -280,7 +290,7 @@ public class ModalityCalendarView {
                 .set("padding", "4px")
                 .set("margin", "2px 0")
                 .set("cursor", "pointer")
-                .set("font-size", "10px");
+                .set("font-size", "12px");
 
         String time = slot.getScheduledStartTime().format(DateTimeFormatter.ofPattern("HH:mm"));
         String title = slot.getOrderLine() != null ? 
