@@ -11,7 +11,6 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.UI;
 import com.application.security.SecurityUtils;
 
 @Route("")
@@ -60,33 +59,21 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
         // Debug: vérifier l'état de l'authentification
         boolean isLoggedIn = SecurityUtils.isUserLoggedIn();
         System.out.println("DEBUG: User logged in? " + isLoggedIn);
+        System.out.println("DEBUG: Current path: " + event.getLocation().getPath());
         
-        // Vérifier si l'utilisateur est authentifié
+        // Si l'utilisateur n'est pas authentifié, le laisser accéder à cette page
+        // Cette page sert de porte d'entrée et redirigera automatiquement
         if (!isLoggedIn) {
-            System.out.println("DEBUG: Redirecting to login...");
-            // Rediriger vers la page de login avec JavaScript comme fallback
-            UI.getCurrent().navigate("login");
-            
-            // Forcer la redirection avec JavaScript si la navigation Vaadin ne fonctionne pas
-            UI.getCurrent().getPage().executeJs(
-                "setTimeout(function() {" +
-                "  console.log('DEBUG: JavaScript redirect to login');" +
-                "  window.location.href = '/login';" +
-                "}, 500);"
-            );
+            System.out.println("DEBUG: User not logged in, showing login redirect...");
+            // Rediriger explicitement vers login pour éviter la boucle
+            event.rerouteTo("login");
             return;
         }
         
-        System.out.println("DEBUG: User is logged in, redirecting to dashboard...");
-        // Si authentifié, rediriger vers le dashboard
-        UI.getCurrent().navigate("dashboard");
-        
-        // Forcer la redirection avec JavaScript comme fallback
-        UI.getCurrent().getPage().executeJs(
-            "setTimeout(function() {" +
-            "  console.log('DEBUG: JavaScript redirect to dashboard');" +
-            "  window.location.href = '/dashboard';" +
-            "}, 500);"
-        );
+        // Si authentifié et sur la racine, rediriger vers dashboard
+        if (isLoggedIn && (event.getLocation().getPath().equals("/") || event.getLocation().getPath().equals(""))) {
+            System.out.println("DEBUG: User is logged in, redirecting to dashboard...");
+            event.rerouteTo("dashboard");
+        }
     }
 }

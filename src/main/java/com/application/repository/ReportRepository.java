@@ -13,19 +13,19 @@ import java.util.Optional;
 @Repository
 public interface ReportRepository extends JpaRepository<Report, Long> {
 
-    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report LEFT JOIN FETCH r.radiologue")
+    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH r.radiologue")
     List<Report> findAllWithRelations();
     
-    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report WHERE r.id = :id")
+    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH r.radiologue WHERE r.id = :id")
     Optional<Report> findByIdWithRelations(Long id);
     
-    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report WHERE e.id = :examId")
+    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH r.radiologue WHERE e.id = :examId")
     Optional<Report> findByExamWithRelations(Long examId);
     
-    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report WHERE r.radiologue.id = :radiologueId")
+    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH r.radiologue WHERE r.radiologue.id = :radiologueId")
     List<Report> findByRadiologueWithRelations(Long radiologueId);
     
-    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.patient LEFT JOIN FETCH e.medecin LEFT JOIN FETCH e.report WHERE r.validated = false")
+    @Query("SELECT r FROM Report r LEFT JOIN FETCH r.exam e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH r.radiologue WHERE r.validated = false")
     List<Report> findUnvalidatedWithRelations();
 
     Optional<Report> findByExam(Exam exam);

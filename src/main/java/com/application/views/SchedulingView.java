@@ -6,6 +6,8 @@ import com.application.entity.ScheduleSlot;
 import com.application.entity.ScheduleSlotStatus;
 import com.application.entity.Modality;
 import com.application.entity.ModalityType;
+import com.application.entity.User;
+import com.application.entity.Hospital;
 import com.application.repository.ExamRepository;
 import com.application.repository.ScheduleSlotRepository;
 import com.application.repository.ModalityRepository;
@@ -28,6 +30,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinSession;
 import jakarta.annotation.security.RolesAllowed;
 
 import java.time.LocalDateTime;
@@ -775,11 +778,25 @@ public class SchedulingView extends VerticalLayout {
     }
 
     private void refreshScheduleList() {
-        // Récupérer les examens à planifier (status CREATED)
-        List<Exam> examsToSchedule = examRepo.findByStatusWithRelations(ExamStatus.CREATED);
+        // Récupérer l'hôpital de l'utilisateur connecté
+        Hospital userHospital = getCurrentUserHospital();
         
-        // Récupérer les créneaux planifiés (status SCHEDULED)
-        List<ScheduleSlot> scheduledSlots = scheduleSlotRepo.findByStatusOrderByScheduledStartTime(ScheduleSlotStatus.SCHEDULED);
+        // Récupérer les examens à planifier (status CREATED) filtrés par hôpital
+        List<Exam> examsToSchedule;
+        if (userHospital != null) {
+            examsToSchedule = examRepo.findByStatusAndHospitalId(ExamStatus.CREATED, userHospital.getId());
+        } else {
+            // Si pas d'hôpital, retourner une liste vide
+            examsToSchedule = List.of();
+        }
+        
+        // Récupérer les créneaux planifiés (status SCHEDULED) filtrés par hôpital
+        List<ScheduleSlot> scheduledSlots;
+        if (userHospital != null) {
+            scheduledSlots = scheduleSlotRepo.findByStatusAndHospitalIdOrderByScheduledStartTime(ScheduleSlotStatus.SCHEDULED, userHospital.getId());
+        } else {
+            scheduledSlots = List.of();
+        }
         
         // Combiner les deux listes
         List<Object> combinedList = new java.util.ArrayList<>();
@@ -787,5 +804,18 @@ public class SchedulingView extends VerticalLayout {
         combinedList.addAll(scheduledSlots);
         
         schedulingGrid.setItems(combinedList);
+    }
+
+    // Méthode pour récupérer l'hôpital de l'utilisateur connecté
+    private Hospital getCurrentUserHospital() {
+        try {
+            User currentUser = (User) VaadinSession.getCurrent().getAttribute("user");
+            if (currentUser != null && currentUser.getHospital() != null) {
+                return currentUser.getHospital();
+            }
+        } catch (Exception e) {
+            // En cas d'erreur, retourner null
+        }
+        return null;
     }
 }

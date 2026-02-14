@@ -28,14 +28,9 @@ public class Exam {
     private String accessionNumber;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "patient_id", nullable = false)
+    @JoinColumn(name = "order_id", nullable = false)
     @EqualsAndHashCode.Exclude
-    private Patient patient;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "medecin_id", nullable = false)
-    @EqualsAndHashCode.Exclude
-    private User medecin;
+    private Order order;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "modality_type_id", nullable = false)
@@ -64,7 +59,7 @@ public class Exam {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "procedure_id")
     @EqualsAndHashCode.Exclude
-    private ProcedureCatalog procedure;
+    private Procedure procedure;
 
     @Column(columnDefinition = "TEXT")
     private String additionalInstructions;
@@ -110,6 +105,33 @@ public class Exam {
         if (modality != null && modality.getModalityType() != null) {
             this.modalityType = modality.getModalityType();
         }
+    }
+
+    // Méthodes pour accéder au patient et médecin via l'ordre
+    public Patient getPatient() {
+        return order != null ? order.getPatient() : null;
+    }
+
+    public User getMedecin() {
+        return order != null ? order.getDoctor() : null;
+    }
+
+    // Méthodes pour la procédure
+    public Procedure getProcedure() {
+        return procedure;
+    }
+
+    public void setProcedure(Procedure procedure) {
+        this.procedure = procedure;
+    }
+
+    // Méthodes de compatibilité pour ne pas casser le code existant
+    public void setPatient(Patient patient) {
+        // Ne fait rien - le patient est défini via l'ordre
+    }
+
+    public void setMedecin(User medecin) {
+        // Ne fait rien - le médecin est défini via l'ordre
     }
 
     // Méthodes de compatibilité pour ne pas casser le code existant

@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+
+  nginx:
+    image: nginx:alpine
+    container_name: pacs-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - orthanc-central
+      - ohif
+    restart: unless-stopped
+    networks:
+      - pacs-network
+
+  orthanc-central:
+    image: orthancteam/orthanc:latest
+    container_name: orthanc-central
+    ports:
+      - "8043:8042"  # Port HTTP
+      - "4243:4242"  # Port DICOM
+    volumes:
+      - ./orthanc-central.json:/etc/orthanc/orthanc.json
+      - orthanc-central-storage:/var/lib/orthanc/db
+    restart: unless-stopped
+    networks:
+      - pacs-network
+
+  ohif:
+    image: ohif/app:latest
+    container_name: ohif-viewer
+    expose:
+      - "80"
+    volumes:
+      - ./ohif-config.js:/usr/share/nginx/html/app-config.js:ro
+    restart: unless-stopped
+    networks:
+      - pacs-network
+
+volumes:
+  orthanc-central-storage:
+    driver: local
+
+networks:
+  pacs-network:
+    driver: bridge

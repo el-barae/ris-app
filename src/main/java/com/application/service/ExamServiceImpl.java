@@ -182,19 +182,29 @@ public class ExamServiceImpl implements ExamService {
     }
 
     private void validateExamData(Exam exam) {
-        // Validation du patient
-        if (exam.getPatient() == null) {
+        // Validation de l'ordre
+        if (exam.getOrder() == null) {
+            throw new IllegalArgumentException("Order is required");
+        }
+
+        // Validation du patient via l'ordre
+        if (exam.getOrder().getPatient() == null) {
             throw new IllegalArgumentException("Patient is required");
         }
 
-        // Validation du médecin
-        if (exam.getMedecin() == null) {
+        // Validation du médecin via l'ordre
+        if (exam.getOrder().getDoctor() == null) {
             throw new IllegalArgumentException("Medecin is required");
         }
 
-        // Validation du type d'examen
-        if (exam.getExamType() == null) {
-            throw new IllegalArgumentException("Exam type is required");
+        // Validation du type de modalité
+        if (exam.getModalityType() == null) {
+            throw new IllegalArgumentException("Modality type is required");
+        }
+
+        // Validation de la procédure
+        if (exam.getProcedure() == null) {
+            throw new IllegalArgumentException("Procedure is required");
         }
 
         // Validation de la date programmée

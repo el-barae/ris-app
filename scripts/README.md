@@ -8,12 +8,16 @@ Ce dossier contient les scripts SQL nécessaires pour créer une base de donnée
 
 | Fichier | Description |
 |---------|-------------|
+| `00-drop-database.sql` | Suppression complète de la base de données |
 | `01-create-database.sql` | Création de la base de données et extensions |
 | `02-create-tables.sql` | Création de toutes les tables avec contraintes et index |
 | `03-insert-initial-data.sql` | Insertion des données initiales (utilisateurs, modalités, procédures, etc.) |
 | `04-create-flyway-table.sql` | Création de la table Flyway pour le versioning |
+| `99-database-reset.sql` | Script complet de réinitialisation (tout-en-un) |
 | `init-all.sh` | Script d'exécution automatique (Linux/macOS) |
 | `init-all.bat` | Script d'exécution automatique (Windows) |
+| `reset-database.sh` | Script de réinitialisation rapide (Linux/macOS) |
+| `reset-database.bat` | Script de réinitialisation rapide (Windows) |
 
 ## 🚀 Installation rapide
 
@@ -24,19 +28,49 @@ Ce dossier contient les scripts SQL nécessaires pour créer une base de donnée
 
 ### Installation automatique
 
-#### Windows:
+#### Option 1: Réinitialisation complète recommandée (après modifications des entities)
+
+**Windows:**
+```bash
+# Réinitialisation complète et rapide
+reset-database.bat
+```
+
+**Linux/macOS:**
+```bash
+# Réinitialisation complète et rapide
+./reset-database.sh
+```
+
+#### Option 2: Installation depuis zéro
+
+**Windows:**
 ```bash
 # Exécuter le script batch
 init-all.bat
 ```
 
-#### Linux/macOS:
+**Linux/macOS:**
 ```bash
 # Rendre le script exécutable
 chmod +x init-all.sh
 
 # Exécuter le script
 ./init-all.sh
+```
+
+#### Option 3: Manuellement
+
+**Windows:**
+```bash
+# Réinitialisation tout-en-un
+psql -U postgres -f 99-database-reset.sql
+```
+
+**Linux/macOS:**
+```bash
+# Réinitialisation tout-en-un
+psql -U postgres -f 99-database-reset.sql
 ```
 
 ### Installation manuelle
@@ -98,9 +132,9 @@ Le script d'initialisation crée:
 - ✅ **10 types de modalités** (CT, MRI, RX, US, MG, etc.)
 - ✅ **10 équipements** répartis par type
 - ✅ **6 utilisateurs** avec différents rôles
-- ✅ **20 procédures** cataloguées
+- ✅ **16 procédures** cataloguées
 - ✅ **7 patients** (dont 2 mineurs avec infos parentales)
-- ✅ **5 examens** programmés
+- ✅ **7 examens** (5 PLANNED pour le worklist, 2 SELECTED pour la worklist active)
 - ✅ **2 rapports** d'exemples
 
 ## 🔧 Configuration Spring Boot

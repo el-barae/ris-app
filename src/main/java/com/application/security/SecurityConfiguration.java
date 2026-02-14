@@ -49,8 +49,16 @@ public class SecurityConfiguration {
                 .requestMatchers("/ws-exam-status/**").permitAll()
                 .requestMatchers("/login", "/login/**", "/test-login").permitAll()
                 .requestMatchers("/perform-login").permitAll()
-                .requestMatchers("/", "/**").permitAll()  // Allow all Vaadin routes
                 .requestMatchers("/images/**", "/icons/**", "/frontend/**", "/styles/**").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/webjars/**").permitAll()
+                .requestMatchers("/VAADIN/**").permitAll()
+                .requestMatchers("/vite-dev-server/**").permitAll()
+                .requestMatchers("/*.js").permitAll()
+                .requestMatchers("/*.css").permitAll()
+                .requestMatchers("/*.html").permitAll()
+                .requestMatchers("/favicon.ico").permitAll()
+                .requestMatchers("/manifest.json").permitAll()
                 .anyRequest().permitAll()  // Allow all requests - Vaadin will handle auth
         );
 
@@ -68,7 +76,7 @@ public class SecurityConfiguration {
         // Configurer l'authentication provider
         http.authenticationProvider(authProvider);
 
-        // Désactiver CSRF complètement - Vaadin gère sa propre sécurité
+        // Désactiver CSRF pour Vaadin
         http.csrf(csrf -> csrf.disable());
 
         return http.build();

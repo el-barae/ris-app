@@ -72,7 +72,7 @@ public class Patient {
     private String parentRelationship;
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Exam> exams;
+    private List<Order> orders;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

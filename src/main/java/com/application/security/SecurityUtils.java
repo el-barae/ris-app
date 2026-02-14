@@ -16,16 +16,24 @@ public class SecurityUtils {
     public static Optional<User> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         
+        System.out.println("DEBUG SecurityUtils: Authentication = " + authentication);
+        System.out.println("DEBUG SecurityUtils: Is authenticated = " + (authentication != null && authentication.isAuthenticated()));
+        System.out.println("DEBUG SecurityUtils: Principal class = " + (authentication != null && authentication.getPrincipal() != null ? authentication.getPrincipal().getClass() : "null"));
+        System.out.println("DEBUG SecurityUtils: Principal = " + (authentication != null ? authentication.getPrincipal() : "null"));
+        
         if (authentication == null || !authentication.isAuthenticated() || 
             authentication.getPrincipal() instanceof String) {
+            System.out.println("DEBUG SecurityUtils: Returning empty - authentication check failed");
             return Optional.empty();
         }
 
         Object principal = authentication.getPrincipal();
         if (principal instanceof CustomUserDetails) {
+            System.out.println("DEBUG SecurityUtils: Found CustomUserDetails, returning user");
             return Optional.of(((CustomUserDetails) principal).getUser());
         }
         
+        System.out.println("DEBUG SecurityUtils: Principal is not CustomUserDetails, returning empty");
         return Optional.empty();
     }
 

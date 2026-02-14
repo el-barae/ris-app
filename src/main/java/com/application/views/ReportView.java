@@ -1,5 +1,6 @@
 package com.application.views;
 
+import com.application.config.ApplicationProperties;
 import com.application.entity.*;
 import com.application.repository.ExamRepository;
 import com.application.repository.ReportRepository;
@@ -60,7 +61,7 @@ public class ReportView extends VerticalLayout {
     // =================================================================
     // CONFIGURATION
     // =================================================================
-    private String ohifBaseUrl = "http://localhost:8042";
+    private final String ohifBaseUrl;
 
     private final ReportRepository reportRepository;
     private final ExamRepository examRepository;
@@ -77,9 +78,10 @@ public class ReportView extends VerticalLayout {
     private User currentUser;
     private List<Exam> allExams = new ArrayList<>();
 
-    public ReportView(ExamRepository examRepository, ReportRepository reportRepository) {
+    public ReportView(ExamRepository examRepository, ReportRepository reportRepository, ApplicationProperties applicationProperties) {
         this.examRepository = examRepository;
         this.reportRepository = reportRepository;
+        this.ohifBaseUrl = applicationProperties.getOhifBaseUrl();
 
         setSizeFull();
         setPadding(false);
@@ -477,38 +479,67 @@ public class ReportView extends VerticalLayout {
 
     // --- FULLSCREEN VIEWER ---
     private void openFullscreenViewer(Exam exam) {
-        if (exam == null) return;
+        if (exam == null) {
+            Notification.show("Examen invalide", 3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            return;
+        }
+
+        // Vérifier que le StudyInstanceUID existe
+        if (exam.getStudyInstanceUID() == null || exam.getStudyInstanceUID().isEmpty()) {
+            Notification.show("Aucune image DICOM disponible pour cet examen", 3000, Notification.Position.MIDDLE)
+                    .addThemeVariants(NotificationVariant.LUMO_WARNING);
+            return;
+        }
 
         Dialog fullscreenDialog = new Dialog();
-        fullscreenDialog.setHeaderTitle("Visualiseur OHIF - " + exam.getAccessionNumber());
+        fullscreenDialog.setHeaderTitle("Visualiseur DICOM - " + exam.getAccessionNumber());
         fullscreenDialog.setWidth("100vw");
         fullscreenDialog.setHeight("100vh");
         fullscreenDialog.setResizable(true);
         fullscreenDialog.setDraggable(false);
+        fullscreenDialog.setModal(true);
 
         VerticalLayout content = new VerticalLayout();
         content.setSizeFull();
         content.setPadding(false);
         content.setSpacing(false);
-        content.getStyle().set("background-color", "black");
+        content.getStyle().set("background-color", "#000000");
 
-        String studyUid = exam.getStudyInstanceUID() != null ? exam.getStudyInstanceUID() : "1.2.840.10008.5.1.4.1.1.1." + exam.getId();
-        String url = ohifBaseUrl + "/ohif/viewer?StudyInstanceUIDs=" + studyUid;
+        // Construire l'URL OHIF avec le StudyInstanceUID
+        String studyUid = exam.getStudyInstanceUID();
+        String url = ohifBaseUrl + "/viewer?StudyInstanceUIDs=" + studyUid;
 
         IFrame iframe = new IFrame(url);
         iframe.setSizeFull();
-        iframe.getStyle().set("border", "none").set("display", "block");
+        iframe.getStyle()
+                .set("border", "none")
+                .set("display", "block");
+        iframe.setAllow("fullscreen"); // Permettre le mode plein écran dans OHIF
 
+        // Bouton de fermeture
         Button closeBtn = new Button("Fermer le Viewer", VaadinIcon.CLOSE.create());
         closeBtn.addThemeVariants(ButtonVariant.LUMO_CONTRAST, ButtonVariant.LUMO_PRIMARY);
         closeBtn.addClickListener(e -> fullscreenDialog.close());
 
-        HorizontalLayout topBar = new HorizontalLayout(closeBtn);
+        // Bouton optionnel: Ouvrir dans un nouvel onglet
+        Button openInTabBtn = new Button("Ouvrir dans un nouvel onglet", VaadinIcon.EXTERNAL_LINK.create());
+        openInTabBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        openInTabBtn.addClickListener(e -> {
+            getUI().ifPresent(ui -> ui.getPage().open(url, "_blank"));
+        });
+
+        // Barre d'outils
+        HorizontalLayout topBar = new HorizontalLayout(openInTabBtn, closeBtn);
         topBar.setWidthFull();
         topBar.setPadding(true);
+        topBar.setSpacing(true);
         topBar.setJustifyContentMode(JustifyContentMode.END);
-        topBar.getStyle().set("background-color", "#1f2937").set("border-bottom", "1px solid #374151");
-        topBar.setHeight("50px");
+        topBar.getStyle()
+                .set("background-color", "#1e293b")
+                .set("border-bottom", "1px solid #334155")
+                .set("box-shadow", "0 2px 4px rgba(0, 0, 0, 0.1)");
+        topBar.setHeight("60px");
         topBar.setAlignItems(Alignment.CENTER);
 
         content.add(topBar, iframe);

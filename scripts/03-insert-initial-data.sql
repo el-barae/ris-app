@@ -39,6 +39,10 @@ INSERT INTO modalities (aetitle, nom, description, marque, modele, is_active, mo
 -- Équipements Radioscopie
 ('RF1', 'Radioscopie Siemens', 'Salle de radioscopie', 'Siemens', 'Artis zee', true, 6);
 
+-- Hôpitaux par défaut
+INSERT INTO hospitals (name, address, city, postal_code, country, phone, email, website, is_active) VALUES
+('Hôpital Central', '123 Rue de la Santé', 'Paris', '75014', 'France', '01 23 45 67 89', 'contact@hopital-central.fr', 'www.hopital-central.fr', true);
+
 -- Utilisateurs par défaut
 -- Mot de passe: admin123 (hashé avec BCrypt)
 INSERT INTO users (username, password, email, first_name, last_name, role, is_active) VALUES
@@ -80,6 +84,37 @@ INSERT INTO procedure_catalogs (code, name, description, region, contrast_requir
 -- Procédures Radioscopie
 ('RF-GI', 'Scopie Digestive', 'Transit œso-gastro-duodénal', 'Abdomen', true, 'Baryum', 'Jeûne 6h avant l''examen', 30, true, 6);
 
+-- Procédures spécifiques (basées sur les catalogues)
+INSERT INTO procedures (name, procedure_code, modality_type_id, region, contrast_required, contrast_type, preparation_instructions, description, scheduled_duration_minutes, is_active, procedure_catalog_id) VALUES
+-- Procédures CT
+('CT Thorax', 'CT-CHEST', 1, 'Chest', true, 'Iodé', 'Jeûne 4h avant l''examen', 'Scanner du thorax avec et sans contraste', 15, true, 1),
+('CT Abdomen', 'CT-ABDOMEN', 1, 'Abdomen', true, 'Iodé', 'Jeûne 6h avant l''examen', 'Scanner de l''abdomen avec contraste', 20, true, 2),
+('CT Crâne', 'CT-HEAD', 1, 'Head', false, null, null, 'Scanner du crâne sans contraste', 10, true, 3),
+('CT Rachis', 'CT-SPINE', 1, 'Spine', false, null, null, 'Scanner du rachis lombaire', 15, true, 4),
+
+-- Procédures IRM
+('IRM Cerveau', 'MRI-BRAIN', 2, 'Head', true, 'Gadolinium', 'Jeûne 4h avant l''examen', 'IRM cérébrale avec et sans contraste', 30, true, 5),
+('IRM Genou', 'MRI-KNEE', 2, 'Extremity', false, null, null, 'IRM du genou sans contraste', 25, true, 6),
+('IRM Rachis', 'MRI-SPINE', 2, 'Spine', false, null, null, 'IRM du rachis cervical', 30, true, 7),
+
+-- Procédures Radiographie
+('Radio Thorax', 'RX-CHEST', 3, 'Chest', false, null, null, 'Radiographie pulmonaire de face et profil', 10, true, 8),
+('RX Abdomen', 'RX-ABDOMEN', 3, 'Abdomen', false, null, null, 'Radiographie abdominale sans préparation', 10, true, 9),
+('RX Membre', 'RX-EXTREMITY', 3, 'Extremity', false, null, null, 'Radiographie de membre (bras/jambe)', 10, true, 10),
+
+-- Procédures Échographie
+('Écho Abdomen', 'US-ABDOMEN', 4, 'Abdomen', false, null, 'Jeûne 6h avant l''examen', 'Échographie abdominale complète', 20, true, 11),
+('Écho Pelvien', 'US-PELVIS', 4, 'Pelvis', false, null, 'Vessie pleine', 'Échographie pelvienne', 15, true, 12),
+('Écho Carotides', 'US-CAROTID', 4, 'Neck', false, null, null, 'Échographie des artères carotides', 15, true, 13),
+('Écho Obstétricale', 'US-OBSTETRIC', 4, 'Pelvis', false, null, 'Vessie pleine', 'Échographie obstétricale', 25, true, 14),
+
+-- Procédures Mammographie
+('Mammo Dépistage', 'MG-SCREENING', 5, 'Chest', false, null, null, 'Mammographie de dépistage bilatérale', 15, true, 15),
+('Mammo Diagnostic', 'Mammo-DIAGNOSTIC', 5, 'Chest', false, null, null, 'Mammographie diagnostique unilatérale', 20, true, 16),
+
+-- Procédures Radioscopie
+('Scopie Digestive', 'RF-GI', 6, 'Abdomen', true, 'Baryum', 'Jeûne 6h avant l''examen', 'Transit œso-gastro-duodénal', 30, true, 17);
+
 -- Patients exemples
 INSERT INTO patients (patient_id, first_name, last_name, date_of_birth, gender, phone, email, address, city, postal_code, cin, nationality) VALUES
 ('PAT00001', 'Jean', 'Martin', '1980-03-15', 'MALE', '06 12 34 56 78', 'jean.martin@email.com', '123 rue de la République', 'Paris', '75001', 'AB123456', 'Française'),
@@ -93,13 +128,21 @@ INSERT INTO patients (patient_id, first_name, last_name, date_of_birth, gender, 
 ('PAT00006', 'Lucas', 'Petit', '2015-02-14', 'MALE', null, '89 rue de la Paix', 'Paris', '75002', 'Française', 'François', 'Petit', '06 78 90 12 34', 'Père'),
 ('PAT00007', 'Emma', 'Martin', '2018-06-25', 'FEMALE', null, '123 avenue Victor Hugo', 'Paris', '75016', 'Française', 'Claire', 'Martin', '06 89 01 23 45', 'Mère');
 
+-- Ordres exemples
+INSERT INTO orders (study_instance_uid, accession_number, hospital_id, doctor_id, patient_id) VALUES
+('1.2.840.113619.2.55.3.604688237.761.1243134237.654', 'ACC20250130001', 1, 2, 1),
+('1.2.840.113619.2.55.3.604688237.761.1243134237.655', 'ACC20250130002', 1, 3, 2),
+('1.2.840.113619.2.55.3.604688237.761.1243134237.656', 'ACC20250130003', 1, 2, 3),
+('1.2.840.113619.2.55.3.604688237.761.1243134237.657', 'ACC20250130004', 1, 3, 4),
+('1.2.840.113619.2.55.3.604688237.761.1243134237.658', 'ACC20250130005', 1, 2, 5);
+
 -- Examens exemples
-INSERT INTO exams (accession_number, study_instance_uid, scheduled_date_time, status, priority, patient_id, medecin_id, procedure_id, modality_type_id, modality_id) VALUES
-('ACC20250130001', '1.2.840.113619.2.55.3.604688237.761.1243134237.654', '2025-01-30 09:00:00', 'SCHEDULED', 'ROUTINE', 1, 2, 1, 1, 1),
-('ACC20250130002', '1.2.840.113619.2.55.3.604688237.761.1243134237.655', '2025-01-30 10:30:00', 'SCHEDULED', 'ROUTINE', 2, 3, 5, 2, 3),
-('ACC20250130003', '1.2.840.113619.2.55.3.604688237.761.1243134237.656', '2025-01-30 14:00:00', 'SCHEDULED', 'URGENT', 3, 2, 9, 3, 5),
-('ACC20250130004', '1.2.840.113619.2.55.3.604688237.761.1243134237.657', '2025-01-30 15:30:00', 'SCHEDULED', 'ROUTINE', 4, 3, 13, 4, 7),
-('ACC20250130005', '1.2.840.113619.2.55.3.604688237.761.1243134237.658', '2025-01-31 08:00:00', 'SCHEDULED', 'ROUTINE', 5, 2, 1, 1, 2);
+INSERT INTO exams (accession_number, study_instance_uid, scheduled_date_time, status, priority, patient_id, medecin_id, procedure_id, modality_type_id, modality_id, order_id) VALUES
+('ACC20250130001', '1.2.840.113619.2.55.3.604688237.761.1243134237.654', '2025-01-30 09:00:00', 'SCHEDULED', 'ROUTINE', 1, 2, 1, 1, 1, 1),
+('ACC20250130002', '1.2.840.113619.2.55.3.604688237.761.1243134237.655', '2025-01-30 10:30:00', 'SCHEDULED', 'ROUTINE', 2, 3, 5, 2, 3, 2),
+('ACC20250130003', '1.2.840.113619.2.55.3.604688237.761.1243134237.656', '2025-01-30 14:00:00', 'SCHEDULED', 'URGENT', 3, 2, 9, 3, 5, 3),
+('ACC20250130004', '1.2.840.113619.2.55.3.604688237.761.1243134237.657', '2025-01-30 15:30:00', 'SCHEDULED', 'ROUTINE', 4, 3, 13, 4, 7, 4),
+('ACC20250130005', '1.2.840.113619.2.55.3.604688237.761.1243134237.658', '2025-01-31 08:00:00', 'SCHEDULED', 'ROUTINE', 5, 2, 1, 1, 2, 5);
 
 -- Rapports exemples
 INSERT INTO reports (exam_id, findings, impression, recommendation, status, radiologist_id) VALUES

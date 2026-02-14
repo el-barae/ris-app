@@ -3,9 +3,13 @@ package com.application.views;
 import com.application.entity.Exam;
 import com.application.entity.ExamStatus;
 import com.application.entity.Priority;
+import com.application.entity.Procedure;
 import com.application.entity.ProcedureCatalog;
 import com.application.entity.ModalityType;
+import com.application.entity.User;
+import com.application.entity.Hospital;
 import com.application.repository.ExamRepository;
+import com.application.repository.ProcedureRepository;
 import com.application.repository.ProcedureCatalogRepository;
 import com.application.repository.ModalityTypeRepository;
 import com.application.service.OrthancWorklistService;
@@ -33,6 +37,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinSession;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +51,8 @@ public class WorklistDragDropView extends VerticalLayout {
 
     private final ExamRepository examRepo;
     private final OrthancWorklistService orthancWorklistService;
-    private final ProcedureCatalogRepository procedureRepo;
+    private final ProcedureCatalogRepository procedureCatalogRepo;
+    private final ProcedureRepository procedureRepo;
     private final ModalityTypeRepository modalityRepo;
     
     private final Grid<Exam> rightGrid = new Grid<>(Exam.class);
@@ -62,9 +68,11 @@ public class WorklistDragDropView extends VerticalLayout {
     private Page page;
 
     public WorklistDragDropView(ExamRepository examRepo, OrthancWorklistService orthancWorklistService, 
-                                ProcedureCatalogRepository procedureRepo, ModalityTypeRepository modalityRepo) {
+                                ProcedureCatalogRepository procedureCatalogRepo, ProcedureRepository procedureRepo, 
+                                ModalityTypeRepository modalityRepo) {
         this.examRepo = examRepo;
         this.orthancWorklistService = orthancWorklistService;
+        this.procedureCatalogRepo = procedureCatalogRepo;
         this.procedureRepo = procedureRepo;
         this.modalityRepo = modalityRepo;
         this.plannedCount = new Span();
@@ -646,23 +654,6 @@ public class WorklistDragDropView extends VerticalLayout {
         return row;
     }
 
-    private void refreshGrids() {
-        // Charger les examens planifiés
-        allPlannedExams = examRepo.findByStatusWithRelations(ExamStatus.PLANNED);
-        displayPlannedExams(allPlannedExams);
-        plannedCount.setText(String.valueOf(allPlannedExams.size()));
-
-        // Charger les examens actifs
-        List<Exam> activeExams = examRepo.findByStatusWithRelations(ExamStatus.SELECTED);
-        rightGrid.setItems(activeExams);
-        inProgressCount.setText(String.valueOf(activeExams.size()));
-    }
-
-    private void exportMWL() {
-        // Logique d'exportation MWL à implémenter
-        Notification.show("Exportation MWL non implémentée", 3000, Notification.Position.BOTTOM_END);
-    }
-
     private void sendToOrthanc() {
         List<Exam> selectedExams = examRepo.findByStatusWithRelations(ExamStatus.SELECTED);
         
@@ -779,7 +770,7 @@ public class WorklistDragDropView extends VerticalLayout {
         modalityCombo.addValueChangeListener(event -> {
             ModalityType selectedModality = event.getValue();
             if (selectedModality != null) {
-                procedureCombo.setItems(procedureRepo.findByModalityTypeAndIsActive(selectedModality, true));
+                procedureCombo.setItems(procedureCatalogRepo.findByModalityTypeAndIsActive(selectedModality, true));
             } else {
                 procedureCombo.setItems();
             }
@@ -787,8 +778,8 @@ public class WorklistDragDropView extends VerticalLayout {
         });
 
         // Set current procedure if exists
-        if (exam.getProcedure() != null) {
-            procedureCombo.setValue(exam.getProcedure());
+        if (exam.getProcedure() != null && exam.getProcedure().getProcedureCatalog() != null) {
+            procedureCombo.setValue(exam.getProcedure().getProcedureCatalog());
             // Also set the modality
             if (exam.getProcedure().getModalityType() != null) {
                 modalityCombo.setValue(exam.getProcedure().getModalityType());
@@ -797,7 +788,7 @@ public class WorklistDragDropView extends VerticalLayout {
 
         // Load initial procedures if modality is already set
         if (modalityCombo.getValue() != null) {
-            procedureCombo.setItems(procedureRepo.findByModalityTypeAndIsActive(modalityCombo.getValue(), true));
+            procedureCombo.setItems(procedureCatalogRepo.findByModalityTypeAndIsActive(modalityCombo.getValue(), true));
         }
 
         content.add(patientField, modalityCombo, procedureCombo);
@@ -815,7 +806,28 @@ public class WorklistDragDropView extends VerticalLayout {
 
             // Update exam
             exam.setModalityType(selectedModality);
-            exam.setProcedure(selectedProcedure);
+            
+            // Create a new Procedure from the selected ProcedureCatalog
+            if (selectedProcedure != null) {
+                Procedure procedure = new Procedure();
+                procedure.setName(selectedProcedure.getName());
+                procedure.setProcedureCode(selectedProcedure.getProcedureCode());
+                procedure.setModalityType(selectedProcedure.getModalityType());
+                procedure.setRegion(selectedProcedure.getRegion());
+                procedure.setLaterality(selectedProcedure.getLaterality());
+                procedure.setContrastRequired(selectedProcedure.getContrastRequired());
+                procedure.setContrastType(selectedProcedure.getContrastType());
+                procedure.setInjectionRate(selectedProcedure.getInjectionRate() != null ? Double.parseDouble(selectedProcedure.getInjectionRate()) : null);
+                procedure.setInjectionVolume(selectedProcedure.getContrastVolume() != null ? Double.parseDouble(selectedProcedure.getContrastVolume()) : null);
+                procedure.setDescription(selectedProcedure.getDescription());
+                procedure.setSpecialInstructions(selectedProcedure.getAdditionalInstructions());
+                procedure.setIsActive(true);
+                procedure.setScheduledDurationMinutes(30); // Valeur par défaut
+                
+                // Save the procedure
+                procedure = procedureRepo.save(procedure);
+                exam.setProcedure(procedure);
+            }
             
             examRepo.save(exam);
             refreshGrids();
@@ -867,5 +879,19 @@ public class WorklistDragDropView extends VerticalLayout {
         });
         
         dialog.open();
+    }
+
+    private void refreshGrids() {
+        // Refresh planned exams data
+        allPlannedExams = examRepo.findByStatusWithRelations(ExamStatus.PLANNED);
+        displayPlannedExams(allPlannedExams);
+        
+        // Refresh selected exams grid
+        List<Exam> selectedExams = examRepo.findByStatusWithRelations(ExamStatus.SELECTED);
+        rightGrid.setItems(selectedExams);
+        
+        // Update count badges
+        plannedCount.setText(String.valueOf(allPlannedExams.size()));
+        inProgressCount.setText(String.valueOf(selectedExams.size()));
     }
 }

@@ -1,5 +1,6 @@
 package com.application.service;
 
+import com.application.config.ApplicationProperties;
 import com.application.entity.Exam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,10 +18,15 @@ import java.util.Map;
 public class OrthancWorklistService {
 
     private static final Logger logger = LoggerFactory.getLogger(OrthancWorklistService.class);
-    private static final String ORTHANC_WORKLIST_URL = "http://localhost:8042/worklists/create";
+    private final String orthancWorklistBaseUrl;
     
     @Autowired
     private RestTemplate restTemplate;
+
+    public OrthancWorklistService(ApplicationProperties applicationProperties, RestTemplate restTemplate) {
+        this.orthancWorklistBaseUrl = applicationProperties.getOrthancWorklistBaseUrl();
+        this.restTemplate = restTemplate;
+    }
 
     public boolean sendWorklistToOrthanc(List<Exam> exams) {
         try {
@@ -32,11 +38,14 @@ public class OrthancWorklistService {
 
                 HttpEntity<Map<String, Object>> entity = new HttpEntity<>(worklistPayload, headers);
 
+                // Use accession number as worklist ID
+                String worklistUrl = orthancWorklistBaseUrl + exam.getAccessionNumber();
+                
                 logger.info("Sending worklist to Orthanc for exam: {}", exam.getAccessionNumber());
                 
                 ResponseEntity<String> response = restTemplate.exchange(
-                    ORTHANC_WORKLIST_URL,
-                    HttpMethod.POST,
+                    worklistUrl,
+                    HttpMethod.PUT,
                     entity,
                     String.class
                 );
@@ -91,12 +100,23 @@ public class OrthancWorklistService {
         
         // Scheduled procedure step
         Map<String, Object> procedureStep = new HashMap<>();
-        procedureStep.put("Modality", exam.getModality());
-
-        procedureStep.put(
-                "ScheduledStationAETitle",
-                exam.getModality() + "1"
-        );
+        procedureStep.put("Modality", exam.getModalityCode());
+        
+        // Use actual AE title from modality if available, otherwise fallback
+        String stationAETitle = "MODALITY_ROBOT";
+        if (exam.getModalityEntity() != null && exam.getModalityEntity().getAetitle() != null) {
+            stationAETitle = exam.getModalityEntity().getAetitle();
+        }
+        procedureStep.put("ScheduledStationAETitle", stationAETitle);
+        
+        // Use actual room name if available, otherwise fallback
+        String stationName = exam.getModalityCode() + "_ROOM_1";
+        if (exam.getModalityEntity() != null && exam.getModalityEntity().getRoom() != null && 
+            exam.getModalityEntity().getRoom().getName() != null) {
+            stationName = exam.getModalityEntity().getRoom().getName();
+        }
+        procedureStep.put("ScheduledStationName", stationName);
+        procedureStep.put("ScheduledProcedureStepID", "SPS-" + exam.getAccessionNumber());
 
         // Utiliser la procédure et les instructions additionnelles pour la description
         String description = "";
@@ -118,6 +138,8 @@ public class OrthancWorklistService {
         if (exam.getScheduledDateTime() != null) {
             procedureStep.put("ScheduledProcedureStepStartDate", 
                 exam.getScheduledDateTime().format(DateTimeFormatter.BASIC_ISO_DATE));
+            procedureStep.put("ScheduledProcedureStepStartTime", 
+                exam.getScheduledDateTime().format(DateTimeFormatter.ofPattern("HHmmss")));
         }
         
         tags.put("ScheduledProcedureStepSequence", new Object[]{procedureStep});

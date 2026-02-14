@@ -1,1237 +1,1237 @@
-package com.application.views;
-
-import com.application.entity.*;
-import com.application.repository.ExamRepository;
-import com.application.repository.ModalityTypeRepository;
-import com.application.repository.PatientRepository;
-import com.application.repository.ProcedureCatalogRepository;
-import com.application.repository.UserRepository;
-import com.application.views.dialog.PatientDialog;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.formlayout.FormLayout;
-import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.*;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextArea;
-import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouteAlias;
-import jakarta.annotation.security.RolesAllowed;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-@Route(value = "secretaire", layout = MainLayout.class)
-@RouteAlias(value = "exams", layout = MainLayout.class)
-@PageTitle("Gestion des examens")
-@RolesAllowed({"ADMIN", "MEDECIN", "SECRETAIRE", "RADIOLOGUE"})
-public class ExamView extends VerticalLayout {
-
-    private final PatientRepository patientRepo;
-    private final ExamRepository examRepo;
-    private final UserRepository userRepo;
-    private final ProcedureCatalogRepository procedureRepo;
-    private final ModalityTypeRepository modalityRepo;
-
-    // Composants UI - Recherche et filtres
-    private TextField examSearchField = new TextField();
-    private ComboBox<User> medecinFilter = new ComboBox<>();
-    private final Span examCountBadge = new Span();
-    private ComboBox<String> modalityFilter = new ComboBox<>();
-    private ComboBox<ExamStatus> statusFilter = new ComboBox<>();
-    private DatePicker dateFilter = new DatePicker();
-
-    // Composants UI - Grille des examens
-    private Grid<Exam> examGrid = new Grid<>(Exam.class, false);
-
-    // Composants UI - Formulaire création/modification
-    private ComboBox<Patient> patientSelector = new ComboBox<>("Patient");
-    private ComboBox<User> medecinSelector = new ComboBox<>("Médecin prescripteur");
-    private ComboBox<String> protocolTemplate = new ComboBox<>("Protocole rapide");
-    private ComboBox<ProcedureCatalog> procedureSelector = new ComboBox<>("Procédure");
-    private TextField procedureName = new TextField("Nom de la procédure");
-    private ComboBox<String> modality = new ComboBox<>("Modalité");
-    private ComboBox<String> region = new ComboBox<>("Région anatomique");
-    private ComboBox<String> lateralite = new ComboBox<>("Latéralité");
-    private ComboBox<Priority> priority = new ComboBox<>("Priorité");
-    private TextArea instructions = new TextArea("Instructions complémentaires");
-
-    // Section contraste
-    private Checkbox withContrast = new Checkbox("Injection de contraste");
-    private TextField contrastType = new TextField("Type de produit");
-    private TextField injectionRate = new TextField("Débit (ml/s)");
-    private TextField contrastVolume = new TextField("Volume (ml)");
-
-    private Button saveButton = new Button("Enregistrer l'examen");
-    private Button resetButton = new Button("Réinitialiser");
-
-    private Exam selectedExam;
-
-    public ExamView(PatientRepository patientRepo, ExamRepository examRepo, UserRepository userRepo, ProcedureCatalogRepository procedureRepo, ModalityTypeRepository modalityRepo) {
-        this.patientRepo = patientRepo;
-        this.examRepo = examRepo;
-        this.userRepo = userRepo;
-        this.procedureRepo = procedureRepo;
-        this.modalityRepo = modalityRepo;
-
-        setSizeFull();
-        setPadding(false);
-        setSpacing(false);
-
-        // Construction de l'interface
-        add(
-                createHeader(),
-                createMainContent()
-        );
-
-        // Chargement initial des données
-        updateExamList();
-    }
-
-    // ==================== CONSTRUCTION DE L'INTERFACE ====================
-
-    private Component createHeader() {
-        HorizontalLayout header = new HorizontalLayout();
-        header.setWidth("97%");
-        header.setPadding(true);
-        header.setSpacing(true);
-        header.setAlignItems(Alignment.CENTER);
-        header.getStyle()
-                .set("background", "linear-gradient(135deg, #10b981 0%, #059669 100%)")
-                .set("color", "white")
-                .set("box-shadow", "0 4px 6px rgba(0,0,0,0.1)")
-                .set("border-radius", "0 0 16px 16px")
-                .set("padding-top", "1rem")
-                .set("padding-left", "1rem")
-                .set("padding-right", "1rem")
-                .set("margin-top", "1rem")
-                .set("margin-left", "1rem");
-
-        // Icône et titre
-        HorizontalLayout titleLayout = new HorizontalLayout();
-        titleLayout.setAlignItems(Alignment.CENTER);
-        titleLayout.setSpacing(true);
-
-        Icon examIcon = VaadinIcon.CLIPBOARD.create();
-        examIcon.setSize("32px");
-        examIcon.getStyle().set("color", "white");
-
-        H2 title = new H2("Gestion des Examens");
-        title.getStyle()
-                .set("margin", "0")
-                .set("color", "white")
-                .set("font-weight", "600");
-
-        titleLayout.add(examIcon, title);
-
-        // Badge compteur
-        examCountBadge.getStyle()
-                .set("background-color", "rgba(255,255,255,0.2)")
-                .set("color", "white")
-                .set("padding", "0.5rem 1rem")
-                .set("border-radius", "2rem")
-                .set("font-weight", "600")
-                .set("font-size", "14px");
-
-        Button newExamBtn = new Button("Nouvel Examen", VaadinIcon.PLUS.create());
-        newExamBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        newExamBtn.getStyle()
-                .set("background", "#7f1d1d")
-                .set("border", "none");
-        newExamBtn.addClickListener(e -> openExamForm(null));
-
-        header.add(titleLayout, examCountBadge);
-        header.setFlexGrow(1, titleLayout);
-        header.add(newExamBtn);
-
-        return header;
-    }
-
-    private Component createMainContent() {
-        VerticalLayout mainContent = new VerticalLayout();
-        mainContent.setSizeFull();
-        mainContent.setPadding(true);
-        mainContent.setSpacing(true);
-
-        mainContent.add(
-                createFiltersSection(),
-                createExamGrid()
-        );
-
-        mainContent.setFlexGrow(1, createExamGrid());
-
-        return mainContent;
-    }
-
-    private Component createFiltersSection() {
-        HorizontalLayout filtersLayout = new HorizontalLayout();
-        filtersLayout.setWidthFull();
-        filtersLayout.setSpacing(true);
-        filtersLayout.setPadding(true);
-        filtersLayout.getStyle()
-                .set("background", "var(--lumo-contrast-5pct)")
-                .set("border-radius", "8px")
-                .set("margin-bottom", "16px");
-
-        // Champ de recherche
-        examSearchField.setPlaceholder("Rechercher (patient, ID, modalité...)");
-        examSearchField.setPrefixComponent(VaadinIcon.SEARCH.create());
-        examSearchField.setClearButtonVisible(true);
-        examSearchField.setValueChangeMode(ValueChangeMode.LAZY);
-        examSearchField.addValueChangeListener(e -> updateExamList());
-        examSearchField.setWidth("300px");
-
-        // Filtre médecin
-        medecinFilter.setPlaceholder("Tous les médecins");
-        medecinFilter.setItems(userRepo.findAll().stream()
-                .filter(user -> user.getRole() == UserRole.MEDECIN)
-                .toList());
-        medecinFilter.setItemLabelGenerator(user -> user.getFirstName() + " " + user.getLastName());
-        medecinFilter.setClearButtonVisible(true);
-        medecinFilter.addValueChangeListener(e -> updateExamList());
-        medecinFilter.setWidth("180px");
-
-        // Filtre modalité
-        modalityFilter.setPlaceholder("Toutes modalités");
-        modalityFilter.setItems("CT", "MR", "US", "CR", "DX");
-        modalityFilter.setClearButtonVisible(true);
-        modalityFilter.addValueChangeListener(e -> updateExamList());
-        modalityFilter.setWidth("150px");
-
-        // Filtre statut
-        statusFilter.setPlaceholder("Tous statuts");
-        statusFilter.setItems(ExamStatus.values());
-        statusFilter.setClearButtonVisible(true);
-        statusFilter.addValueChangeListener(e -> updateExamList());
-        statusFilter.setWidth("150px");
-
-        // Filtre date
-        dateFilter.setPlaceholder("Filtrer par date");
-        dateFilter.setClearButtonVisible(true);
-        dateFilter.addValueChangeListener(e -> updateExamList());
-        dateFilter.setWidth("180px");
-
-        Button resetFilters = new Button("Réinitialiser", VaadinIcon.REFRESH.create());
-        resetFilters.addClickListener(e -> {
-            examSearchField.clear();
-            medecinFilter.clear();
-            modalityFilter.clear();
-            statusFilter.clear();
-            dateFilter.clear();
-            updateExamList();
-        });
-
-        filtersLayout.add(
-                examSearchField,
-                medecinFilter,
-                modalityFilter,
-                statusFilter,
-                dateFilter,
-                resetFilters
-        );
-        filtersLayout.setFlexGrow(1, examSearchField);
-        filtersLayout.setAlignItems(Alignment.CENTER);
-
-        return filtersLayout;
-    }
-
-    private Component createExamGrid() {
-        examGrid.removeAllColumns();
-        examGrid.setSizeFull();
-        examGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
-
-        // Configuration des colonnes
-        examGrid.addColumn(exam -> exam.getAccessionNumber())
-                .setHeader("N° Accession")
-                .setWidth("140px")
-                .setFlexGrow(0)
-                .setSortable(true);
-
-        examGrid.addColumn(exam -> {
-                    Patient p = exam.getPatient();
-                    return p != null ? p.getLastName() + " " + p.getFirstName() : "N/A";
-                })
-                .setHeader("Patient")
-                .setFlexGrow(1)
-                .setSortable(true);
-
-        examGrid.addColumn(exam -> {
-                    Patient p = exam.getPatient();
-                    return p != null ? p.getPatientId() : "N/A";
-                })
-                .setHeader("IPP")
-                .setWidth("120px")
-                .setFlexGrow(0);
-
-        examGrid.addColumn(Exam::getModality)
-                .setHeader("Modalité")
-                .setWidth("100px")
-                .setFlexGrow(0);
-
-        examGrid.addColumn(exam -> {
-                    User m = exam.getMedecin();
-                    return m != null ? m.getFirstName() + " " + m.getLastName() : "N/A";
-                })
-                .setHeader("Médecin")
-                .setWidth("150px")
-                .setFlexGrow(0);
-
-        examGrid.addComponentColumn(exam -> {
-                    Span statusBadge = new Span(exam.getStatus() != null ? exam.getStatus().toString() : "N/A");
-                    statusBadge.getElement().getThemeList().add("badge");
-
-                    if (exam.getStatus() != null) {
-                        switch (exam.getStatus()) {
-                            case CREATED:
-                                statusBadge.getElement().getThemeList().add("secondary");
-                                break;
-                            case PLANNED:
-                                statusBadge.getElement().getThemeList().add("primary");
-                                break;
-                            case IN_PROGRESS:
-                                statusBadge.getElement().getThemeList().add("contrast");
-                                break;
-                            case COMPLETED:
-                                statusBadge.getElement().getThemeList().add("success");
-                                break;
-                            case CANCELLED:
-                                statusBadge.getElement().getThemeList().add("error");
-                                break;
-                        }
-                    }
-
-                    return statusBadge;
-                })
-                .setHeader("Statut")
-                .setWidth("120px")
-                .setFlexGrow(0);
-
-        examGrid.addComponentColumn(exam -> {
-                    Span priorityBadge = new Span(exam.getPriority() != null ? exam.getPriority().toString() : "NORMAL");
-                    priorityBadge.getElement().getThemeList().add("badge");
-
-                    if (exam.getPriority() == Priority.URGENT) {
-                        priorityBadge.getElement().getThemeList().add("error");
-                    } else if (exam.getPriority() == Priority.NORMAL) {
-                        priorityBadge.getElement().getThemeList().add("primary");
-                    }
-
-                    return priorityBadge;
-                })
-                .setHeader("Priorité")
-                .setWidth("100px")
-                .setFlexGrow(0);
-
-        examGrid.addColumn(exam -> {
-                    if (exam.getScheduledDateTime() != null) {
-                        return exam.getScheduledDateTime().format(
-                                java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-                        );
-                    }
-                    return "N/A";
-                })
-                .setHeader("Date programmée")
-                .setWidth("160px")
-                .setFlexGrow(0)
-                .setSortable(true);
-
-        examGrid.addComponentColumn(this::createActionButtons)
-                .setHeader("Actions")
-                .setWidth("150px")
-                .setFlexGrow(0);
-
-        examGrid.getStyle()
-                .set("border-radius", "8px")
-                .set("box-shadow", "0 2px 4px rgba(0,0,0,0.1)");
-
-        return examGrid;
-    }
-
-    private HorizontalLayout createActionButtons(Exam exam) {
-        HorizontalLayout actions = new HorizontalLayout();
-        actions.setSpacing(true);
-        actions.setPadding(false);
-
-        Button viewBtn = new Button(VaadinIcon.EYE.create());
-        viewBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
-        viewBtn.getElement().setProperty("title", "Voir les détails");
-        viewBtn.addClickListener(e -> openExamDetails(exam));
-
-        Button editBtn = new Button(VaadinIcon.EDIT.create());
-        editBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
-        editBtn.getElement().setProperty("title", "Modifier");
-        editBtn.addClickListener(e -> openExamForm(exam));
-
-        Button deleteBtn = new Button(VaadinIcon.TRASH.create());
-        deleteBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
-        deleteBtn.getElement().setProperty("title", "Supprimer");
-        deleteBtn.addClickListener(e -> confirmDeleteExam(exam));
-
-        actions.add(viewBtn, editBtn, deleteBtn);
-        return actions;
-    }
-
-    // ==================== FORMULAIRE EXAMEN ====================
-
-    private void openExamForm(Exam exam) {
-        Dialog dialog = new Dialog();
-        dialog.setWidth("1200px");
-        dialog.setHeight("95vh");
-
-        boolean isEdit = exam != null;
-        selectedExam = exam;
-
-        dialog.setHeaderTitle(isEdit ? "Modifier l'examen" : "Nouvel examen");
-
-        VerticalLayout formContainer = new VerticalLayout();
-        formContainer.setPadding(false);
-        formContainer.setSpacing(true);
-
-        // Section 1: Patient et Médecin
-        FormLayout section1 = new FormLayout();
-        section1.setResponsiveSteps(
-                new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("500px", 2)
-        );
-
-        configurePatientSelector();
-        configureMedecinSelector();
-
-        if (isEdit) {
-            patientSelector.setValue(exam.getPatient());
-            patientSelector.setEnabled(false);
-            medecinSelector.setValue(exam.getMedecin());
-        }
-
-        Button newPatientBtn = new Button("Nouveau patient", VaadinIcon.PLUS_CIRCLE.create());
-        newPatientBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
-        newPatientBtn.addClickListener(e -> openPatientDialog(dialog));
-
-        section1.add(patientSelector, medecinSelector);
-        section1.setColspan(patientSelector, 2);
-
-        // Section 2: Protocole et Procédure
-        FormLayout section2 = new FormLayout();
-        section2.setResponsiveSteps(
-                new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("500px", 2)
-        );
-
-        configureProtocolTemplate();
-        configureProcedureFields();
-
-        if (isEdit) {
-            if (exam.getProcedure() != null) {
-                procedureSelector.setValue(exam.getProcedure());
-            } else {
-                procedureName.setValue(exam.getAdditionalInstructions() != null ? exam.getAdditionalInstructions() : "");
-            }
-            modality.setValue(exam.getModalityCode());
-            priority.setValue(exam.getPriority() != null ? exam.getPriority() : Priority.NORMAL);
-        }
-
-        section2.add(procedureSelector, procedureName, modality, region, lateralite, priority);
-        section2.setColspan(procedureSelector, 2);
-        section2.setColspan(procedureName, 2);
-
-        // Section détails de la procédure sélectionnée
-        Div procedureDetails = new Div();
-        procedureDetails.setWidthFull();
-        procedureDetails.getStyle()
-                .set("background", "#f8f9fa")
-                .set("border", "1px solid #dee2e6")
-                .set("border-radius", "8px")
-                .set("padding", "1rem")
-                .set("margin-top", "1rem")
-                .set("display", "none");
+// package com.application.views;
+
+// import com.application.entity.*;
+// import com.application.repository.ExamRepository;
+// import com.application.repository.ModalityTypeRepository;
+// import com.application.repository.PatientRepository;
+// import com.application.repository.ProcedureCatalogRepository;
+// import com.application.repository.UserRepository;
+// import com.application.views.dialog.PatientDialog;
+// import com.vaadin.flow.component.Component;
+// import com.vaadin.flow.component.button.Button;
+// import com.vaadin.flow.component.button.ButtonVariant;
+// import com.vaadin.flow.component.checkbox.Checkbox;
+// import com.vaadin.flow.component.combobox.ComboBox;
+// import com.vaadin.flow.component.datepicker.DatePicker;
+// import com.vaadin.flow.component.dialog.Dialog;
+// import com.vaadin.flow.component.formlayout.FormLayout;
+// import com.vaadin.flow.component.grid.Grid;
+// import com.vaadin.flow.component.html.*;
+// import com.vaadin.flow.component.icon.Icon;
+// import com.vaadin.flow.component.icon.VaadinIcon;
+// import com.vaadin.flow.component.notification.Notification;
+// import com.vaadin.flow.component.notification.NotificationVariant;
+// import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+// import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+// import com.vaadin.flow.component.textfield.TextArea;
+// import com.vaadin.flow.component.textfield.TextField;
+// import com.vaadin.flow.data.value.ValueChangeMode;
+// import com.vaadin.flow.router.PageTitle;
+// import com.vaadin.flow.router.Route;
+// import com.vaadin.flow.router.RouteAlias;
+// import jakarta.annotation.security.RolesAllowed;
+
+// import java.time.LocalDate;
+// import java.util.List;
+// import java.util.Optional;
+// import java.util.UUID;
+// import java.util.stream.Collectors;
+
+// @Route(value = "exams-old", layout = MainLayout.class)
+// @RouteAlias(value = "exams-legacy", layout = MainLayout.class)
+// @PageTitle("Gestion des examens")
+// @RolesAllowed({"ADMIN", "MEDECIN", "SECRETAIRE", "RADIOLOGUE"})
+// public class ExamView extends VerticalLayout {
+
+//     private final PatientRepository patientRepo;
+//     private final ExamRepository examRepo;
+//     private final UserRepository userRepo;
+//     private final ProcedureCatalogRepository procedureRepo;
+//     private final ModalityTypeRepository modalityRepo;
+
+//     // Composants UI - Recherche et filtres
+//     private TextField examSearchField = new TextField();
+//     private ComboBox<User> medecinFilter = new ComboBox<>();
+//     private final Span examCountBadge = new Span();
+//     private ComboBox<String> modalityFilter = new ComboBox<>();
+//     private ComboBox<ExamStatus> statusFilter = new ComboBox<>();
+//     private DatePicker dateFilter = new DatePicker();
+
+//     // Composants UI - Grille des examens
+//     private Grid<Exam> examGrid = new Grid<>(Exam.class, false);
+
+//     // Composants UI - Formulaire création/modification
+//     private ComboBox<Patient> patientSelector = new ComboBox<>("Patient");
+//     private ComboBox<User> medecinSelector = new ComboBox<>("Médecin prescripteur");
+//     private ComboBox<String> protocolTemplate = new ComboBox<>("Protocole rapide");
+//     private ComboBox<ProcedureCatalog> procedureSelector = new ComboBox<>("Procédure");
+//     private TextField procedureName = new TextField("Nom de la procédure");
+//     private ComboBox<String> modality = new ComboBox<>("Modalité");
+//     private ComboBox<String> region = new ComboBox<>("Région anatomique");
+//     private ComboBox<String> lateralite = new ComboBox<>("Latéralité");
+//     private ComboBox<Priority> priority = new ComboBox<>("Priorité");
+//     private TextArea instructions = new TextArea("Instructions complémentaires");
+
+//     // Section contraste
+//     private Checkbox withContrast = new Checkbox("Injection de contraste");
+//     private TextField contrastType = new TextField("Type de produit");
+//     private TextField injectionRate = new TextField("Débit (ml/s)");
+//     private TextField contrastVolume = new TextField("Volume (ml)");
+
+//     private Button saveButton = new Button("Enregistrer l'examen");
+//     private Button resetButton = new Button("Réinitialiser");
+
+//     private Exam selectedExam;
+
+//     public ExamView(PatientRepository patientRepo, ExamRepository examRepo, UserRepository userRepo, ProcedureCatalogRepository procedureRepo, ModalityTypeRepository modalityRepo) {
+//         this.patientRepo = patientRepo;
+//         this.examRepo = examRepo;
+//         this.userRepo = userRepo;
+//         this.procedureRepo = procedureRepo;
+//         this.modalityRepo = modalityRepo;
+
+//         setSizeFull();
+//         setPadding(false);
+//         setSpacing(false);
+
+//         // Construction de l'interface
+//         add(
+//                 createHeader(),
+//                 createMainContent()
+//         );
+
+//         // Chargement initial des données
+//         updateExamList();
+//     }
+
+//     // ==================== CONSTRUCTION DE L'INTERFACE ====================
+
+//     private Component createHeader() {
+//         HorizontalLayout header = new HorizontalLayout();
+//         header.setWidth("97%");
+//         header.setPadding(true);
+//         header.setSpacing(true);
+//         header.setAlignItems(Alignment.CENTER);
+//         header.getStyle()
+//                 .set("background", "linear-gradient(135deg, #10b981 0%, #059669 100%)")
+//                 .set("color", "white")
+//                 .set("box-shadow", "0 4px 6px rgba(0,0,0,0.1)")
+//                 .set("border-radius", "0 0 16px 16px")
+//                 .set("padding-top", "1rem")
+//                 .set("padding-left", "1rem")
+//                 .set("padding-right", "1rem")
+//                 .set("margin-top", "1rem")
+//                 .set("margin-left", "1rem");
+
+//         // Icône et titre
+//         HorizontalLayout titleLayout = new HorizontalLayout();
+//         titleLayout.setAlignItems(Alignment.CENTER);
+//         titleLayout.setSpacing(true);
+
+//         Icon examIcon = VaadinIcon.CLIPBOARD.create();
+//         examIcon.setSize("32px");
+//         examIcon.getStyle().set("color", "white");
+
+//         H2 title = new H2("Gestion des Examens");
+//         title.getStyle()
+//                 .set("margin", "0")
+//                 .set("color", "white")
+//                 .set("font-weight", "600");
+
+//         titleLayout.add(examIcon, title);
+
+//         // Badge compteur
+//         examCountBadge.getStyle()
+//                 .set("background-color", "rgba(255,255,255,0.2)")
+//                 .set("color", "white")
+//                 .set("padding", "0.5rem 1rem")
+//                 .set("border-radius", "2rem")
+//                 .set("font-weight", "600")
+//                 .set("font-size", "14px");
+
+//         Button newExamBtn = new Button("Nouvel Examen", VaadinIcon.PLUS.create());
+//         newExamBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+//         newExamBtn.getStyle()
+//                 .set("background", "#7f1d1d")
+//                 .set("border", "none");
+//         newExamBtn.addClickListener(e -> openExamForm(null));
+
+//         header.add(titleLayout, examCountBadge);
+//         header.setFlexGrow(1, titleLayout);
+//         header.add(newExamBtn);
+
+//         return header;
+//     }
+
+//     private Component createMainContent() {
+//         VerticalLayout mainContent = new VerticalLayout();
+//         mainContent.setSizeFull();
+//         mainContent.setPadding(true);
+//         mainContent.setSpacing(true);
+
+//         mainContent.add(
+//                 createFiltersSection(),
+//                 createExamGrid()
+//         );
+
+//         mainContent.setFlexGrow(1, createExamGrid());
+
+//         return mainContent;
+//     }
+
+//     private Component createFiltersSection() {
+//         HorizontalLayout filtersLayout = new HorizontalLayout();
+//         filtersLayout.setWidthFull();
+//         filtersLayout.setSpacing(true);
+//         filtersLayout.setPadding(true);
+//         filtersLayout.getStyle()
+//                 .set("background", "var(--lumo-contrast-5pct)")
+//                 .set("border-radius", "8px")
+//                 .set("margin-bottom", "16px");
+
+//         // Champ de recherche
+//         examSearchField.setPlaceholder("Rechercher (patient, ID, modalité...)");
+//         examSearchField.setPrefixComponent(VaadinIcon.SEARCH.create());
+//         examSearchField.setClearButtonVisible(true);
+//         examSearchField.setValueChangeMode(ValueChangeMode.LAZY);
+//         examSearchField.addValueChangeListener(e -> updateExamList());
+//         examSearchField.setWidth("300px");
+
+//         // Filtre médecin
+//         medecinFilter.setPlaceholder("Tous les médecins");
+//         medecinFilter.setItems(userRepo.findAll().stream()
+//                 .filter(user -> user.getRole() == UserRole.MEDECIN)
+//                 .toList());
+//         medecinFilter.setItemLabelGenerator(user -> user.getFirstName() + " " + user.getLastName());
+//         medecinFilter.setClearButtonVisible(true);
+//         medecinFilter.addValueChangeListener(e -> updateExamList());
+//         medecinFilter.setWidth("180px");
+
+//         // Filtre modalité
+//         modalityFilter.setPlaceholder("Toutes modalités");
+//         modalityFilter.setItems("CT", "MR", "US", "CR", "DX");
+//         modalityFilter.setClearButtonVisible(true);
+//         modalityFilter.addValueChangeListener(e -> updateExamList());
+//         modalityFilter.setWidth("150px");
+
+//         // Filtre statut
+//         statusFilter.setPlaceholder("Tous statuts");
+//         statusFilter.setItems(ExamStatus.values());
+//         statusFilter.setClearButtonVisible(true);
+//         statusFilter.addValueChangeListener(e -> updateExamList());
+//         statusFilter.setWidth("150px");
+
+//         // Filtre date
+//         dateFilter.setPlaceholder("Filtrer par date");
+//         dateFilter.setClearButtonVisible(true);
+//         dateFilter.addValueChangeListener(e -> updateExamList());
+//         dateFilter.setWidth("180px");
+
+//         Button resetFilters = new Button("Réinitialiser", VaadinIcon.REFRESH.create());
+//         resetFilters.addClickListener(e -> {
+//             examSearchField.clear();
+//             medecinFilter.clear();
+//             modalityFilter.clear();
+//             statusFilter.clear();
+//             dateFilter.clear();
+//             updateExamList();
+//         });
+
+//         filtersLayout.add(
+//                 examSearchField,
+//                 medecinFilter,
+//                 modalityFilter,
+//                 statusFilter,
+//                 dateFilter,
+//                 resetFilters
+//         );
+//         filtersLayout.setFlexGrow(1, examSearchField);
+//         filtersLayout.setAlignItems(Alignment.CENTER);
+
+//         return filtersLayout;
+//     }
+
+//     private Component createExamGrid() {
+//         examGrid.removeAllColumns();
+//         examGrid.setSizeFull();
+//         examGrid.setSelectionMode(Grid.SelectionMode.SINGLE);
+
+//         // Configuration des colonnes
+//         examGrid.addColumn(exam -> exam.getAccessionNumber())
+//                 .setHeader("N° Accession")
+//                 .setWidth("140px")
+//                 .setFlexGrow(0)
+//                 .setSortable(true);
+
+//         examGrid.addColumn(exam -> {
+//                     Patient p = exam.getPatient();
+//                     return p != null ? p.getLastName() + " " + p.getFirstName() : "N/A";
+//                 })
+//                 .setHeader("Patient")
+//                 .setFlexGrow(1)
+//                 .setSortable(true);
+
+//         examGrid.addColumn(exam -> {
+//                     Patient p = exam.getPatient();
+//                     return p != null ? p.getPatientId() : "N/A";
+//                 })
+//                 .setHeader("IPP")
+//                 .setWidth("120px")
+//                 .setFlexGrow(0);
+
+//         examGrid.addColumn(Exam::getModality)
+//                 .setHeader("Modalité")
+//                 .setWidth("100px")
+//                 .setFlexGrow(0);
+
+//         examGrid.addColumn(exam -> {
+//                     User m = exam.getMedecin();
+//                     return m != null ? m.getFirstName() + " " + m.getLastName() : "N/A";
+//                 })
+//                 .setHeader("Médecin")
+//                 .setWidth("150px")
+//                 .setFlexGrow(0);
+
+//         examGrid.addComponentColumn(exam -> {
+//                     Span statusBadge = new Span(exam.getStatus() != null ? exam.getStatus().toString() : "N/A");
+//                     statusBadge.getElement().getThemeList().add("badge");
+
+//                     if (exam.getStatus() != null) {
+//                         switch (exam.getStatus()) {
+//                             case CREATED:
+//                                 statusBadge.getElement().getThemeList().add("secondary");
+//                                 break;
+//                             case PLANNED:
+//                                 statusBadge.getElement().getThemeList().add("primary");
+//                                 break;
+//                             case IN_PROGRESS:
+//                                 statusBadge.getElement().getThemeList().add("contrast");
+//                                 break;
+//                             case COMPLETED:
+//                                 statusBadge.getElement().getThemeList().add("success");
+//                                 break;
+//                             case CANCELLED:
+//                                 statusBadge.getElement().getThemeList().add("error");
+//                                 break;
+//                         }
+//                     }
+
+//                     return statusBadge;
+//                 })
+//                 .setHeader("Statut")
+//                 .setWidth("120px")
+//                 .setFlexGrow(0);
+
+//         examGrid.addComponentColumn(exam -> {
+//                     Span priorityBadge = new Span(exam.getPriority() != null ? exam.getPriority().toString() : "NORMAL");
+//                     priorityBadge.getElement().getThemeList().add("badge");
+
+//                     if (exam.getPriority() == Priority.URGENT) {
+//                         priorityBadge.getElement().getThemeList().add("error");
+//                     } else if (exam.getPriority() == Priority.NORMAL) {
+//                         priorityBadge.getElement().getThemeList().add("primary");
+//                     }
+
+//                     return priorityBadge;
+//                 })
+//                 .setHeader("Priorité")
+//                 .setWidth("100px")
+//                 .setFlexGrow(0);
+
+//         examGrid.addColumn(exam -> {
+//                     if (exam.getScheduledDateTime() != null) {
+//                         return exam.getScheduledDateTime().format(
+//                                 java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+//                         );
+//                     }
+//                     return "N/A";
+//                 })
+//                 .setHeader("Date programmée")
+//                 .setWidth("160px")
+//                 .setFlexGrow(0)
+//                 .setSortable(true);
+
+//         examGrid.addComponentColumn(this::createActionButtons)
+//                 .setHeader("Actions")
+//                 .setWidth("150px")
+//                 .setFlexGrow(0);
+
+//         examGrid.getStyle()
+//                 .set("border-radius", "8px")
+//                 .set("box-shadow", "0 2px 4px rgba(0,0,0,0.1)");
+
+//         return examGrid;
+//     }
+
+//     private HorizontalLayout createActionButtons(Exam exam) {
+//         HorizontalLayout actions = new HorizontalLayout();
+//         actions.setSpacing(true);
+//         actions.setPadding(false);
+
+//         Button viewBtn = new Button(VaadinIcon.EYE.create());
+//         viewBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+//         viewBtn.getElement().setProperty("title", "Voir les détails");
+//         viewBtn.addClickListener(e -> openExamDetails(exam));
+
+//         Button editBtn = new Button(VaadinIcon.EDIT.create());
+//         editBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
+//         editBtn.getElement().setProperty("title", "Modifier");
+//         editBtn.addClickListener(e -> openExamForm(exam));
+
+//         Button deleteBtn = new Button(VaadinIcon.TRASH.create());
+//         deleteBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
+//         deleteBtn.getElement().setProperty("title", "Supprimer");
+//         deleteBtn.addClickListener(e -> confirmDeleteExam(exam));
+
+//         actions.add(viewBtn, editBtn, deleteBtn);
+//         return actions;
+//     }
+
+//     // ==================== FORMULAIRE EXAMEN ====================
+
+//     private void openExamForm(Exam exam) {
+//         Dialog dialog = new Dialog();
+//         dialog.setWidth("1200px");
+//         dialog.setHeight("95vh");
+
+//         boolean isEdit = exam != null;
+//         selectedExam = exam;
+
+//         dialog.setHeaderTitle(isEdit ? "Modifier l'examen" : "Nouvel examen");
+
+//         VerticalLayout formContainer = new VerticalLayout();
+//         formContainer.setPadding(false);
+//         formContainer.setSpacing(true);
+
+//         // Section 1: Patient et Médecin
+//         FormLayout section1 = new FormLayout();
+//         section1.setResponsiveSteps(
+//                 new FormLayout.ResponsiveStep("0", 1),
+//                 new FormLayout.ResponsiveStep("500px", 2)
+//         );
+
+//         configurePatientSelector();
+//         configureMedecinSelector();
+
+//         if (isEdit) {
+//             patientSelector.setValue(exam.getPatient());
+//             patientSelector.setEnabled(false);
+//             medecinSelector.setValue(exam.getMedecin());
+//         }
+
+//         Button newPatientBtn = new Button("Nouveau patient", VaadinIcon.PLUS_CIRCLE.create());
+//         newPatientBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
+//         newPatientBtn.addClickListener(e -> openPatientDialog(dialog));
+
+//         section1.add(patientSelector, medecinSelector);
+//         section1.setColspan(patientSelector, 2);
+
+//         // Section 2: Protocole et Procédure
+//         FormLayout section2 = new FormLayout();
+//         section2.setResponsiveSteps(
+//                 new FormLayout.ResponsiveStep("0", 1),
+//                 new FormLayout.ResponsiveStep("500px", 2)
+//         );
+
+//         configureProtocolTemplate();
+//         configureProcedureFields();
+
+//         if (isEdit) {
+//             if (exam.getProcedure() != null) {
+//                 procedureSelector.setValue(exam.getProcedure());
+//             } else {
+//                 procedureName.setValue(exam.getAdditionalInstructions() != null ? exam.getAdditionalInstructions() : "");
+//             }
+//             modality.setValue(exam.getModalityCode());
+//             priority.setValue(exam.getPriority() != null ? exam.getPriority() : Priority.NORMAL);
+//         }
+
+//         section2.add(procedureSelector, procedureName, modality, region, lateralite, priority);
+//         section2.setColspan(procedureSelector, 2);
+//         section2.setColspan(procedureName, 2);
+
+//         // Section détails de la procédure sélectionnée
+//         Div procedureDetails = new Div();
+//         procedureDetails.setWidthFull();
+//         procedureDetails.getStyle()
+//                 .set("background", "#f8f9fa")
+//                 .set("border", "1px solid #dee2e6")
+//                 .set("border-radius", "8px")
+//                 .set("padding", "1rem")
+//                 .set("margin-top", "1rem")
+//                 .set("display", "none");
         
-        procedureSelector.addValueChangeListener(e -> {
-            if (e.getValue() != null) {
-                updateProcedureDetails(procedureDetails, e.getValue());
-                procedureDetails.getStyle().set("display", "block");
-            } else {
-                procedureDetails.getStyle().set("display", "none");
-            }
-        });
+//         procedureSelector.addValueChangeListener(e -> {
+//             if (e.getValue() != null) {
+//                 updateProcedureDetails(procedureDetails, e.getValue());
+//                 procedureDetails.getStyle().set("display", "block");
+//             } else {
+//                 procedureDetails.getStyle().set("display", "none");
+//             }
+//         });
 
-        // Section 3: Contraste
-        FormLayout section3 = new FormLayout();
-        section3.setResponsiveSteps(
-                new FormLayout.ResponsiveStep("0", 1),
-                new FormLayout.ResponsiveStep("500px", 3)
-        );
+//         // Section 3: Contraste
+//         FormLayout section3 = new FormLayout();
+//         section3.setResponsiveSteps(
+//                 new FormLayout.ResponsiveStep("0", 1),
+//                 new FormLayout.ResponsiveStep("500px", 3)
+//         );
 
-        configureContrastFields();
+//         configureContrastFields();
 
-        section3.add(withContrast, contrastType, injectionRate, contrastVolume);
-        section3.setColspan(withContrast, 3);
+//         section3.add(withContrast, contrastType, injectionRate, contrastVolume);
+//         section3.setColspan(withContrast, 3);
 
-        // Section 4: Instructions
-        instructions.setWidthFull();
-        instructions.setHeight("100px");
-        instructions.setPlaceholder("Instructions complémentaires pour le radiologue...");
+//         // Section 4: Instructions
+//         instructions.setWidthFull();
+//         instructions.setHeight("100px");
+//         instructions.setPlaceholder("Instructions complémentaires pour le radiologue...");
 
-        // Ajout des sections
-        formContainer.add(
-                createSectionTitle("Patient et Prescription"),
-                section1,
-                newPatientBtn,
-                new Hr(),
-                createSectionTitle("Détails de l'Examen"),
-                section2,
-                procedureDetails,
-                new Hr(),
-                createSectionTitle("Injection de Contraste"),
-                section3,
-                new Hr(),
-                createSectionTitle("Instructions"),
-                instructions
-        );
+//         // Ajout des sections
+//         formContainer.add(
+//                 createSectionTitle("Patient et Prescription"),
+//                 section1,
+//                 newPatientBtn,
+//                 new Hr(),
+//                 createSectionTitle("Détails de l'Examen"),
+//                 section2,
+//                 procedureDetails,
+//                 new Hr(),
+//                 createSectionTitle("Injection de Contraste"),
+//                 section3,
+//                 new Hr(),
+//                 createSectionTitle("Instructions"),
+//                 instructions
+//         );
 
-        // Boutons d'action
-        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        saveButton.setIcon(VaadinIcon.CHECK.create());
-        saveButton.addClickListener(e -> {
-            if (saveExam(isEdit)) {
-                dialog.close();
-                updateExamList();
-            }
-        });
+//         // Boutons d'action
+//         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+//         saveButton.setIcon(VaadinIcon.CHECK.create());
+//         saveButton.addClickListener(e -> {
+//             if (saveExam(isEdit)) {
+//                 dialog.close();
+//                 updateExamList();
+//             }
+//         });
 
-        resetButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-        resetButton.setIcon(VaadinIcon.REFRESH.create());
-        resetButton.addClickListener(e -> resetForm());
+//         resetButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+//         resetButton.setIcon(VaadinIcon.REFRESH.create());
+//         resetButton.addClickListener(e -> resetForm());
 
-        Button cancelButton = new Button("Annuler", VaadinIcon.CLOSE.create());
-        cancelButton.addClickListener(e -> dialog.close());
+//         Button cancelButton = new Button("Annuler", VaadinIcon.CLOSE.create());
+//         cancelButton.addClickListener(e -> dialog.close());
 
-        HorizontalLayout buttonBar = new HorizontalLayout(saveButton, resetButton, cancelButton);
-        buttonBar.setSpacing(true);
-        buttonBar.setPadding(true);
-        buttonBar.setJustifyContentMode(JustifyContentMode.END);
-        buttonBar.setWidthFull();
+//         HorizontalLayout buttonBar = new HorizontalLayout(saveButton, resetButton, cancelButton);
+//         buttonBar.setSpacing(true);
+//         buttonBar.setPadding(true);
+//         buttonBar.setJustifyContentMode(JustifyContentMode.END);
+//         buttonBar.setWidthFull();
 
-        dialog.add(formContainer);
-        dialog.getFooter().add(buttonBar);
-        dialog.open();
-    }
+//         dialog.add(formContainer);
+//         dialog.getFooter().add(buttonBar);
+//         dialog.open();
+//     }
 
-    private H4 createSectionTitle(String title) {
-        H4 sectionTitle = new H4(title);
-        sectionTitle.getStyle()
-                .set("margin", "8px 0")
-                .set("color", "var(--lumo-primary-text-color)");
-        return sectionTitle;
-    }
+//     private H4 createSectionTitle(String title) {
+//         H4 sectionTitle = new H4(title);
+//         sectionTitle.getStyle()
+//                 .set("margin", "8px 0")
+//                 .set("color", "var(--lumo-primary-text-color)");
+//         return sectionTitle;
+//     }
 
-    // ==================== CONFIGURATION DES CHAMPS ====================
+//     // ==================== CONFIGURATION DES CHAMPS ====================
 
-    private void configurePatientSelector() {
-        patientSelector.setItems(patientRepo.findAll());
-        patientSelector.setItemLabelGenerator(patient ->
-                patient.getLastName() + " " + patient.getFirstName() + " (" + patient.getPatientId() + ")"
-        );
-        patientSelector.setPlaceholder("Sélectionner un patient");
-        patientSelector.setWidthFull();
-    }
+//     private void configurePatientSelector() {
+//         patientSelector.setItems(patientRepo.findAll());
+//         patientSelector.setItemLabelGenerator(patient ->
+//                 patient.getLastName() + " " + patient.getFirstName() + " (" + patient.getPatientId() + ")"
+//         );
+//         patientSelector.setPlaceholder("Sélectionner un patient");
+//         patientSelector.setWidthFull();
+//     }
 
-    private void configureMedecinSelector() {
-        medecinSelector.setItems(userRepo.findAll().stream()
-                .filter(user -> user.getRole() == UserRole.MEDECIN)
-                .toList());
-        medecinSelector.setItemLabelGenerator(user ->
-                "Dr. " + user.getFirstName() + " " + user.getLastName()
-        );
-        medecinSelector.setPlaceholder("Sélectionner un médecin");
-        medecinSelector.setWidthFull();
-    }
+//     private void configureMedecinSelector() {
+//         medecinSelector.setItems(userRepo.findAll().stream()
+//                 .filter(user -> user.getRole() == UserRole.MEDECIN)
+//                 .toList());
+//         medecinSelector.setItemLabelGenerator(user ->
+//                 "Dr. " + user.getFirstName() + " " + user.getLastName()
+//         );
+//         medecinSelector.setPlaceholder("Sélectionner un médecin");
+//         medecinSelector.setWidthFull();
+//     }
 
-    private void configureProtocolTemplate() {
-        protocolTemplate.setItems(
-                "CT Abdomen Embolie",
-                "CT Abdomen Rachis",
-                "CT Thorax Standard",
-                "IRM Cérébrale",
-                "Radio Thorax",
-                "Échographie Abdominale"
-        );
-        protocolTemplate.setPlaceholder("Sélectionner un protocole");
-        protocolTemplate.setClearButtonVisible(true);
-        protocolTemplate.addValueChangeListener(e -> applyProtocol(e.getValue()));
-    }
+//     private void configureProtocolTemplate() {
+//         protocolTemplate.setItems(
+//                 "CT Abdomen Embolie",
+//                 "CT Abdomen Rachis",
+//                 "CT Thorax Standard",
+//                 "IRM Cérébrale",
+//                 "Radio Thorax",
+//                 "Échographie Abdominale"
+//         );
+//         protocolTemplate.setPlaceholder("Sélectionner un protocole");
+//         protocolTemplate.setClearButtonVisible(true);
+//         protocolTemplate.addValueChangeListener(e -> applyProtocol(e.getValue()));
+//     }
 
-    private void configureProcedureFields() {
-        procedureSelector.setItems(procedureRepo.findAllWithModality());
-        procedureSelector.setItemLabelGenerator(procedure -> {
-            StringBuilder label = new StringBuilder();
+//     private void configureProcedureFields() {
+//         procedureSelector.setItems(procedureRepo.findAllWithModality());
+//         procedureSelector.setItemLabelGenerator(procedure -> {
+//             StringBuilder label = new StringBuilder();
             
-            // Nom de la procédure
-            label.append(procedure.getName());
+//             // Nom de la procédure
+//             label.append(procedure.getName());
             
-            // Code de procédure
-            if (procedure.getProcedureCode() != null && !procedure.getProcedureCode().isEmpty()) {
-                label.append(" [").append(procedure.getProcedureCode()).append("]");
-            }
+//             // Code de procédure
+//             if (procedure.getProcedureCode() != null && !procedure.getProcedureCode().isEmpty()) {
+//                 label.append(" [").append(procedure.getProcedureCode()).append("]");
+//             }
             
-            // Région anatomique
-            if (procedure.getRegion() != null && !procedure.getRegion().isEmpty()) {
-                label.append(" - ").append(procedure.getRegion());
-            }
+//             // Région anatomique
+//             if (procedure.getRegion() != null && !procedure.getRegion().isEmpty()) {
+//                 label.append(" - ").append(procedure.getRegion());
+//             }
             
-            // Modalité
-            if (procedure.getModalityType() != null) {
-                label.append(" (").append(procedure.getModalityType().getCode()).append(")");
-            }
+//             // Modalité
+//             if (procedure.getModalityType() != null) {
+//                 label.append(" (").append(procedure.getModalityType().getCode()).append(")");
+//             }
             
-            // Contraste requis
-            if (Boolean.TRUE.equals(procedure.getContrastRequired())) {
-                label.append(" ⚡");
-            }
+//             // Contraste requis
+//             if (Boolean.TRUE.equals(procedure.getContrastRequired())) {
+//                 label.append(" ⚡");
+//             }
             
-            // Latéralité si applicable
-            if (procedure.getLaterality() != null && !procedure.getLaterality().equals("N/A")) {
-                label.append(" [").append(procedure.getLaterality()).append("]");
-            }
+//             // Latéralité si applicable
+//             if (procedure.getLaterality() != null && !procedure.getLaterality().equals("N/A")) {
+//                 label.append(" [").append(procedure.getLaterality()).append("]");
+//             }
             
-            return label.toString();
-        });
-        procedureSelector.setPlaceholder("Sélectionner une procédure");
-        procedureSelector.setClearButtonVisible(true);
-        procedureSelector.addValueChangeListener(e -> {
-            boolean showCustomFields = e.getValue() == null;
-            procedureName.setVisible(showCustomFields);
-            region.setVisible(showCustomFields);
-            lateralite.setVisible(showCustomFields);
-            withContrast.setVisible(showCustomFields);
-            if (e.getValue() != null) {
-                if (e.getValue().getModalityType() != null) {
-                    modality.setValue(e.getValue().getModalityType().getCode());
-                }
-                region.setValue(e.getValue().getRegion());
-                lateralite.setValue(e.getValue().getLaterality() != null ? e.getValue().getLaterality() : "N/A");
-                withContrast.setValue(e.getValue().getContrastRequired());
-                if (e.getValue().getContrastRequired()) {
-                    contrastType.setValue(e.getValue().getContrastType());
-                    injectionRate.setValue(e.getValue().getInjectionRate());
-                    contrastVolume.setValue(e.getValue().getContrastVolume());
-                }
-            }
-        });
+//             return label.toString();
+//         });
+//         procedureSelector.setPlaceholder("Sélectionner une procédure");
+//         procedureSelector.setClearButtonVisible(true);
+//         procedureSelector.addValueChangeListener(e -> {
+//             boolean showCustomFields = e.getValue() == null;
+//             procedureName.setVisible(showCustomFields);
+//             region.setVisible(showCustomFields);
+//             lateralite.setVisible(showCustomFields);
+//             withContrast.setVisible(showCustomFields);
+//             if (e.getValue() != null) {
+//                 if (e.getValue().getModalityType() != null) {
+//                     modality.setValue(e.getValue().getModalityType().getCode());
+//                 }
+//                 region.setValue(e.getValue().getRegion());
+//                 lateralite.setValue(e.getValue().getLaterality() != null ? e.getValue().getLaterality() : "N/A");
+//                 withContrast.setValue(e.getValue().getContrastRequired());
+//                 if (e.getValue().getContrastRequired()) {
+//                     contrastType.setValue(e.getValue().getContrastType());
+//                     injectionRate.setValue(e.getValue().getInjectionRate());
+//                     contrastVolume.setValue(e.getValue().getContrastVolume());
+//                 }
+//             }
+//         });
 
-        procedureName.setPlaceholder("Ex: Scanner thoracique avec injection");
-        procedureName.setVisible(false);
+//         procedureName.setPlaceholder("Ex: Scanner thoracique avec injection");
+//         procedureName.setVisible(false);
 
-        // Charger les modalités depuis la base de données
-        List<ModalityType> modalities = modalityRepo.findAllActiveOrdered();
-        modality.setItems(modalities.stream().map(ModalityType::getCode).toList());
-        modality.setPlaceholder("Sélectionner");
+//         // Charger les modalités depuis la base de données
+//         List<ModalityType> modalities = modalityRepo.findAllActiveOrdered();
+//         modality.setItems(modalities.stream().map(ModalityType::getCode).toList());
+//         modality.setPlaceholder("Sélectionner");
 
-        region.setItems("Head", "Neck", "Chest", "Abdomen", "Pelvis", "Spine", "Extremity");
-        region.setPlaceholder("Sélectionner");
-        region.setVisible(false);
+//         region.setItems("Head", "Neck", "Chest", "Abdomen", "Pelvis", "Spine", "Extremity");
+//         region.setPlaceholder("Sélectionner");
+//         region.setVisible(false);
 
-        lateralite.setItems("N/A", "Gauche", "Droite", "Bilatéral");
-        lateralite.setValue("N/A");
-        lateralite.setVisible(false);
+//         lateralite.setItems("N/A", "Gauche", "Droite", "Bilatéral");
+//         lateralite.setValue("N/A");
+//         lateralite.setVisible(false);
 
-        priority.setItems(Priority.values());
-        priority.setValue(Priority.NORMAL);
-    }
+//         priority.setItems(Priority.values());
+//         priority.setValue(Priority.NORMAL);
+//     }
 
-    private void configureContrastFields() {
-        contrastType.setVisible(false);
-        injectionRate.setVisible(false);
-        contrastVolume.setVisible(false);
+//     private void configureContrastFields() {
+//         contrastType.setVisible(false);
+//         injectionRate.setVisible(false);
+//         contrastVolume.setVisible(false);
 
-        withContrast.addValueChangeListener(e -> {
-            boolean visible = e.getValue();
-            contrastType.setVisible(visible);
-            injectionRate.setVisible(visible);
-            contrastVolume.setVisible(visible);
-        });
+//         withContrast.addValueChangeListener(e -> {
+//             boolean visible = e.getValue();
+//             contrastType.setVisible(visible);
+//             injectionRate.setVisible(visible);
+//             contrastVolume.setVisible(visible);
+//         });
 
-        contrastType.setPlaceholder("Ex: Iohexol 350");
-        injectionRate.setPlaceholder("Ex: 4");
-        contrastVolume.setPlaceholder("Ex: 100");
+//         contrastType.setPlaceholder("Ex: Iohexol 350");
+//         injectionRate.setPlaceholder("Ex: 4");
+//         contrastVolume.setPlaceholder("Ex: 100");
         
-        withContrast.setVisible(false);
-    }
+//         withContrast.setVisible(false);
+//     }
 
-    // ==================== LOGIQUE MÉTIER ====================
+//     // ==================== LOGIQUE MÉTIER ====================
 
-    private void applyProtocol(String protocol) {
-        if (protocol == null) return;
+//     private void applyProtocol(String protocol) {
+//         if (protocol == null) return;
 
-        procedureName.setValue(protocol);
+//         procedureName.setValue(protocol);
 
-        if (protocol.contains("CT")) {
-            modality.setValue("CT");
-        } else if (protocol.contains("IRM")) {
-            modality.setValue("MR");
-        } else if (protocol.contains("Radio")) {
-            modality.setValue("CR");
-        } else if (protocol.contains("Échographie")) {
-            modality.setValue("US");
-        }
+//         if (protocol.contains("CT")) {
+//             modality.setValue("CT");
+//         } else if (protocol.contains("IRM")) {
+//             modality.setValue("MR");
+//         } else if (protocol.contains("Radio")) {
+//             modality.setValue("CR");
+//         } else if (protocol.contains("Échographie")) {
+//             modality.setValue("US");
+//         }
 
-        if (protocol.contains("Abdomen")) region.setValue("Abdomen");
-        if (protocol.contains("Thorax") || protocol.contains("Chest")) region.setValue("Chest");
-        if (protocol.contains("Cérébrale")) region.setValue("Head");
+//         if (protocol.contains("Abdomen")) region.setValue("Abdomen");
+//         if (protocol.contains("Thorax") || protocol.contains("Chest")) region.setValue("Chest");
+//         if (protocol.contains("Cérébrale")) region.setValue("Head");
 
-        if (protocol.contains("Embolie")) {
-            withContrast.setValue(true);
-            contrastType.setValue("Iohexol 350");
-            injectionRate.setValue("4");
-            contrastVolume.setValue("100");
-            priority.setValue(Priority.URGENT);
-        }
-    }
+//         if (protocol.contains("Embolie")) {
+//             withContrast.setValue(true);
+//             contrastType.setValue("Iohexol 350");
+//             injectionRate.setValue("4");
+//             contrastVolume.setValue("100");
+//             priority.setValue(Priority.URGENT);
+//         }
+//     }
 
-    private boolean saveExam(boolean isEdit) {
-        // Validation
-        if (patientSelector.getValue() == null) {
-            Notification.show("Veuillez sélectionner un patient", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            return false;
-        }
+//     private boolean saveExam(boolean isEdit) {
+//         // Validation
+//         if (patientSelector.getValue() == null) {
+//             Notification.show("Veuillez sélectionner un patient", 3000, Notification.Position.MIDDLE)
+//                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
+//             return false;
+//         }
 
-        if (medecinSelector.getValue() == null) {
-            Notification.show("Veuillez sélectionner un médecin", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            return false;
-        }
+//         if (medecinSelector.getValue() == null) {
+//             Notification.show("Veuillez sélectionner un médecin", 3000, Notification.Position.MIDDLE)
+//                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
+//             return false;
+//         }
 
-        if (modality.getValue() == null) {
-            Notification.show("Veuillez sélectionner une modalité", 3000, Notification.Position.MIDDLE)
-                    .addThemeVariants(NotificationVariant.LUMO_ERROR);
-            return false;
-        }
+//         if (modality.getValue() == null) {
+//             Notification.show("Veuillez sélectionner une modalité", 3000, Notification.Position.MIDDLE)
+//                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
+//             return false;
+//         }
 
-        Exam exam = isEdit ? selectedExam : new Exam();
+//         Exam exam = isEdit ? selectedExam : new Exam();
         
-        Patient selectedPatient = patientSelector.getValue();
+//         Patient selectedPatient = patientSelector.getValue();
         
-        // Vérifier si le patient doit être sauvegardé (cas d'un nouveau patient)
-        if (selectedPatient != null && selectedPatient.getId() == null) {
-            selectedPatient = patientRepo.save(selectedPatient);
-            // Rafraîchir le sélecteur pour inclure le patient sauvegardé
-            configurePatientSelector();
-            patientSelector.setValue(selectedPatient);
-        }
+//         // Vérifier si le patient doit être sauvegardé (cas d'un nouveau patient)
+//         if (selectedPatient != null && selectedPatient.getId() == null) {
+//             selectedPatient = patientRepo.save(selectedPatient);
+//             // Rafraîchir le sélecteur pour inclure le patient sauvegardé
+//             configurePatientSelector();
+//             patientSelector.setValue(selectedPatient);
+//         }
 
-        exam.setPatient(selectedPatient);
-        exam.setMedecin(medecinSelector.getValue());
+//         exam.setPatient(selectedPatient);
+//         exam.setMedecin(medecinSelector.getValue());
         
-        // Définir le modalityType correctement
-        if (modality.getValue() != null) {
-            Optional<ModalityType> modalityType = modalityRepo.findByCode(modality.getValue());
-            if (modalityType.isPresent()) {
-                exam.setModalityType(modalityType.get());
-            } else {
-                // Créer une modalité par défaut si elle n'existe pas
-                ModalityType newModality = new ModalityType();
-                newModality.setCode(modality.getValue());
-                newModality.setName(modality.getValue());
-                newModality.setIsActive(true);
-                newModality = modalityRepo.save(newModality);
-                exam.setModalityType(newModality);
-            }
-        }
-        // Temporairement défini à maintenant pour éviter l'erreur de contrainte NOT NULL
-        exam.setScheduledDateTime(java.time.LocalDateTime.now());
-        exam.setStatus(isEdit ? exam.getStatus() : ExamStatus.CREATED);
-        exam.setPriority(priority.getValue());
+//         // Définir le modalityType correctement
+//         if (modality.getValue() != null) {
+//             Optional<ModalityType> modalityType = modalityRepo.findByCode(modality.getValue());
+//             if (modalityType.isPresent()) {
+//                 exam.setModalityType(modalityType.get());
+//             } else {
+//                 // Créer une modalité par défaut si elle n'existe pas
+//                 ModalityType newModality = new ModalityType();
+//                 newModality.setCode(modality.getValue());
+//                 newModality.setName(modality.getValue());
+//                 newModality.setIsActive(true);
+//                 newModality = modalityRepo.save(newModality);
+//                 exam.setModalityType(newModality);
+//             }
+//         }
+//         // Temporairement défini à maintenant pour éviter l'erreur de contrainte NOT NULL
+//         exam.setScheduledDateTime(java.time.LocalDateTime.now());
+//         exam.setStatus(isEdit ? exam.getStatus() : ExamStatus.CREATED);
+//         exam.setPriority(priority.getValue());
 
-        if (!isEdit) {
-            exam.setAccessionNumber("ACC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
-        }
+//         if (!isEdit) {
+//             exam.setAccessionNumber("ACC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+//         }
 
-        // Créer ou trouver la procédure
-        ProcedureCatalog procedure = null;
-        if (procedureSelector.getValue() != null) {
-            procedure = procedureSelector.getValue();
-        } else if (procedureName.getValue() != null && !procedureName.getValue().isEmpty()) {
-            // Créer une nouvelle procédure
-            procedure = new ProcedureCatalog();
-            procedure.setName(procedureName.getValue());
+//         // Créer ou trouver la procédure
+//         ProcedureCatalog procedure = null;
+//         if (procedureSelector.getValue() != null) {
+//             procedure = procedureSelector.getValue();
+//         } else if (procedureName.getValue() != null && !procedureName.getValue().isEmpty()) {
+//             // Créer une nouvelle procédure
+//             procedure = new ProcedureCatalog();
+//             procedure.setName(procedureName.getValue());
             
-            // Trouver la modalité correspondante
-            Optional<ModalityType> modalityType = modalityRepo.findByCode(modality.getValue());
-            if (modalityType.isPresent()) {
-                procedure.setModalityType(modalityType.get());
-            } else {
-                // Créer une modalité par défaut si elle n'existe pas
-                ModalityType newModality = new ModalityType();
-                newModality.setCode(modality.getValue());
-                newModality.setName(modality.getValue());
-                newModality.setIsActive(true);
-                newModality = modalityRepo.save(newModality);
-                procedure.setModalityType(newModality);
-            }
+//             // Trouver la modalité correspondante
+//             Optional<ModalityType> modalityType = modalityRepo.findByCode(modality.getValue());
+//             if (modalityType.isPresent()) {
+//                 procedure.setModalityType(modalityType.get());
+//             } else {
+//                 // Créer une modalité par défaut si elle n'existe pas
+//                 ModalityType newModality = new ModalityType();
+//                 newModality.setCode(modality.getValue());
+//                 newModality.setName(modality.getValue());
+//                 newModality.setIsActive(true);
+//                 newModality = modalityRepo.save(newModality);
+//                 procedure.setModalityType(newModality);
+//             }
             
-            procedure.setRegion(region.getValue());
-            procedure.setLaterality(lateralite.getValue() != null && !lateralite.getValue().equals("N/A") ? lateralite.getValue() : null);
-            procedure.setContrastRequired(withContrast.getValue());
-            if (withContrast.getValue()) {
-                procedure.setContrastType(contrastType.getValue());
-                procedure.setInjectionRate(injectionRate.getValue());
-                procedure.setContrastVolume(contrastVolume.getValue());
-            }
-            procedure.setDescription("Procédure créée automatiquement depuis la vue examens");
-            procedure = procedureRepo.save(procedure);
-        }
+//             procedure.setRegion(region.getValue());
+//             procedure.setLaterality(lateralite.getValue() != null && !lateralite.getValue().equals("N/A") ? lateralite.getValue() : null);
+//             procedure.setContrastRequired(withContrast.getValue());
+//             if (withContrast.getValue()) {
+//                 procedure.setContrastType(contrastType.getValue());
+//                 procedure.setInjectionRate(injectionRate.getValue());
+//                 procedure.setContrastVolume(contrastVolume.getValue());
+//             }
+//             procedure.setDescription("Procédure créée automatiquement depuis la vue examens");
+//             procedure = procedureRepo.save(procedure);
+//         }
         
-        exam.setProcedure(procedure);
-        exam.setAdditionalInstructions(instructions.getValue());
+//         exam.setProcedure(procedure);
+//         exam.setAdditionalInstructions(instructions.getValue());
 
-        // Définir le type d'examen
-        if (modality.getValue() != null) {
-            switch (modality.getValue()) {
-                case "CT": exam.setExamType(ExamType.CT); break;
-                case "MR": exam.setExamType(ExamType.MRI); break;
-                case "CR": case "DX": exam.setExamType(ExamType.RX); break;
-                case "US": exam.setExamType(ExamType.ECHO); break;
-                default: exam.setExamType(ExamType.CT);
-            }
-        }
+//         // Définir le type d'examen
+//         if (modality.getValue() != null) {
+//             switch (modality.getValue()) {
+//                 case "CT": exam.setExamType(ExamType.CT); break;
+//                 case "MR": exam.setExamType(ExamType.MRI); break;
+//                 case "CR": case "DX": exam.setExamType(ExamType.RX); break;
+//                 case "US": exam.setExamType(ExamType.ECHO); break;
+//                 default: exam.setExamType(ExamType.CT);
+//             }
+//         }
 
-        examRepo.save(exam);
+//         examRepo.save(exam);
 
-        String message = isEdit ? "Examen modifié avec succès" : "✅ Examen créé et ajouté à la Worklist";
-        Notification.show(message, 3000, Notification.Position.BOTTOM_START)
-                .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+//         String message = isEdit ? "Examen modifié avec succès" : "✅ Examen créé et ajouté à la Worklist";
+//         Notification.show(message, 3000, Notification.Position.BOTTOM_START)
+//                 .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
 
-        resetForm();
-        return true;
-    }
+//         resetForm();
+//         return true;
+//     }
 
-    private void resetForm() {
-        patientSelector.clear();
-        medecinSelector.clear();
-        procedureSelector.clear();
-        procedureName.clear();
-        modality.clear();
-        region.clear();
-        lateralite.setValue("N/A");
-        priority.setValue(Priority.NORMAL);
-        withContrast.setValue(false);
-        contrastType.clear();
-        injectionRate.clear();
-        contrastVolume.clear();
-        instructions.clear();
+//     private void resetForm() {
+//         patientSelector.clear();
+//         medecinSelector.clear();
+//         procedureSelector.clear();
+//         procedureName.clear();
+//         modality.clear();
+//         region.clear();
+//         lateralite.setValue("N/A");
+//         priority.setValue(Priority.NORMAL);
+//         withContrast.setValue(false);
+//         contrastType.clear();
+//         injectionRate.clear();
+//         contrastVolume.clear();
+//         instructions.clear();
         
-        // Réinitialiser la visibilité des champs
-        procedureName.setVisible(false);
-        region.setVisible(false);
-        lateralite.setVisible(false);
-        withContrast.setVisible(false);
-    }
+//         // Réinitialiser la visibilité des champs
+//         procedureName.setVisible(false);
+//         region.setVisible(false);
+//         lateralite.setVisible(false);
+//         withContrast.setVisible(false);
+//     }
 
-    private void updateExamList() {
-        List<Exam> exams = examRepo.findAllWithRelations();
+//     private void updateExamList() {
+//         List<Exam> exams = examRepo.findAllWithRelations();
 
-        // Application des filtres
-        exams = exams.stream()
-                .filter(exam -> {
-                    // Filtre recherche texte
-                    if (examSearchField.getValue() != null && !examSearchField.getValue().trim().isEmpty()) {
-                        String search = examSearchField.getValue().toLowerCase().trim();
-                        boolean matches = false;
+//         // Application des filtres
+//         exams = exams.stream()
+//                 .filter(exam -> {
+//                     // Filtre recherche texte
+//                     if (examSearchField.getValue() != null && !examSearchField.getValue().trim().isEmpty()) {
+//                         String search = examSearchField.getValue().toLowerCase().trim();
+//                         boolean matches = false;
 
-                        if (exam.getAccessionNumber() != null && exam.getAccessionNumber().toLowerCase().contains(search)) matches = true;
-                        if (exam.getPatient() != null) {
-                            String patientName = (exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName()).toLowerCase();
-                            if (patientName.contains(search)) matches = true;
-                            if (exam.getPatient().getPatientId() != null && exam.getPatient().getPatientId().toLowerCase().contains(search)) matches = true;
-                        }
-                        if (exam.getModalityCode() != null && exam.getModalityCode().toLowerCase().contains(search)) matches = true;
+//                         if (exam.getAccessionNumber() != null && exam.getAccessionNumber().toLowerCase().contains(search)) matches = true;
+//                         if (exam.getPatient() != null) {
+//                             String patientName = (exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName()).toLowerCase();
+//                             if (patientName.contains(search)) matches = true;
+//                             if (exam.getPatient().getPatientId() != null && exam.getPatient().getPatientId().toLowerCase().contains(search)) matches = true;
+//                         }
+//                         if (exam.getModalityCode() != null && exam.getModalityCode().toLowerCase().contains(search)) matches = true;
 
-                        if (!matches) return false;
-                    }
+//                         if (!matches) return false;
+//                     }
 
-                    // Filtre médecin
-                    if (medecinFilter.getValue() != null && !exam.getMedecin().equals(medecinFilter.getValue())) {
-                        return false;
-                    }
+//                     // Filtre médecin
+//                     if (medecinFilter.getValue() != null && !exam.getMedecin().equals(medecinFilter.getValue())) {
+//                         return false;
+//                     }
 
-                    // Filtre modalité
-                    if (modalityFilter.getValue() != null && !modalityFilter.getValue().equals(exam.getModalityCode())) {
-                        return false;
-                    }
+//                     // Filtre modalité
+//                     if (modalityFilter.getValue() != null && !modalityFilter.getValue().equals(exam.getModalityCode())) {
+//                         return false;
+//                     }
 
-                    // Filtre statut
-                    if (statusFilter.getValue() != null && !statusFilter.getValue().equals(exam.getStatus())) {
-                        return false;
-                    }
+//                     // Filtre statut
+//                     if (statusFilter.getValue() != null && !statusFilter.getValue().equals(exam.getStatus())) {
+//                         return false;
+//                     }
 
-                    // Filtre date
-                    if (dateFilter.getValue() != null && exam.getScheduledDateTime() != null) {
-                        LocalDate examDate = exam.getScheduledDateTime().toLocalDate();
-                        if (!examDate.equals(dateFilter.getValue())) {
-                            return false;
-                        }
-                    }
+//                     // Filtre date
+//                     if (dateFilter.getValue() != null && exam.getScheduledDateTime() != null) {
+//                         LocalDate examDate = exam.getScheduledDateTime().toLocalDate();
+//                         if (!examDate.equals(dateFilter.getValue())) {
+//                             return false;
+//                         }
+//                     }
 
-                    return true;
-                })
-                .sorted((e1, e2) -> {
-                    if (e1.getScheduledDateTime() == null) return 1;
-                    if (e2.getScheduledDateTime() == null) return -1;
-                    return e2.getScheduledDateTime().compareTo(e1.getScheduledDateTime());
-                })
-                .collect(Collectors.toList());
+//                     return true;
+//                 })
+//                 .sorted((e1, e2) -> {
+//                     if (e1.getScheduledDateTime() == null) return 1;
+//                     if (e2.getScheduledDateTime() == null) return -1;
+//                     return e2.getScheduledDateTime().compareTo(e1.getScheduledDateTime());
+//                 })
+//                 .collect(Collectors.toList());
 
-        examGrid.setItems(exams);
-        updateExamCount();
-    }
+//         examGrid.setItems(exams);
+//         updateExamCount();
+//     }
 
-    private void updateExamCount() {
-        int count = examGrid.getListDataView().getItemCount();
-        examCountBadge.setText(count + " examen" + (count > 1 ? "s" : ""));
-    }
+//     private void updateExamCount() {
+//         int count = examGrid.getListDataView().getItemCount();
+//         examCountBadge.setText(count + " examen" + (count > 1 ? "s" : ""));
+//     }
 
-    // ==================== DIALOGUES ====================
+//     // ==================== DIALOGUES ====================
 
-    private void openPatientDialog(Dialog parentDialog) {
-        PatientDialog patientDialog = new PatientDialog(null, patient -> {
-            // Rafraîchir le sélecteur de patients
-            configurePatientSelector();
-            patientSelector.setValue(patient);
+//     private void openPatientDialog(Dialog parentDialog) {
+//         PatientDialog patientDialog = new PatientDialog(null, patient -> {
+//             // Rafraîchir le sélecteur de patients
+//             configurePatientSelector();
+//             patientSelector.setValue(patient);
             
-            Notification.show("Patient créé avec succès", 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-        });
+//             Notification.show("Patient créé avec succès", 3000, Notification.Position.BOTTOM_START)
+//                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+//         });
         
-        patientDialog.open();
-    }
+//         patientDialog.open();
+//     }
 
-    private void openExamDetails(Exam exam) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Détails de l'examen");
-        dialog.setWidth("700px");
+//     private void openExamDetails(Exam exam) {
+//         Dialog dialog = new Dialog();
+//         dialog.setHeaderTitle("Détails de l'examen");
+//         dialog.setWidth("700px");
 
-        VerticalLayout content = new VerticalLayout();
-        content.setPadding(true);
-        content.setSpacing(true);
+//         VerticalLayout content = new VerticalLayout();
+//         content.setPadding(true);
+//         content.setSpacing(true);
 
-        // Section Patient
-        VerticalLayout patientSection = new VerticalLayout();
-        patientSection.setPadding(false);
-        patientSection.setSpacing(false);
+//         // Section Patient
+//         VerticalLayout patientSection = new VerticalLayout();
+//         patientSection.setPadding(false);
+//         patientSection.setSpacing(false);
 
-        H4 patientTitle = new H4("Informations Patient");
-        patientTitle.getStyle().set("color", "var(--lumo-primary-text-color)");
+//         H4 patientTitle = new H4("Informations Patient");
+//         patientTitle.getStyle().set("color", "var(--lumo-primary-text-color)");
 
-        Patient patient = exam.getPatient();
-        if (patient != null) {
-            patientSection.add(
-                    patientTitle,
-                    createDetailRow("IPP", patient.getPatientId()),
-                    createDetailRow("Nom", patient.getLastName() + " " + patient.getFirstName()),
-                    createDetailRow("Date de naissance", patient.getDateOfBirth() != null ?
-                            patient.getDateOfBirth().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "N/A"),
-                    createDetailRow("Sexe", patient.getGender() != null ? patient.getGender().toString() : "N/A")
-            );
-        }
+//         Patient patient = exam.getPatient();
+//         if (patient != null) {
+//             patientSection.add(
+//                     patientTitle,
+//                     createDetailRow("IPP", patient.getPatientId()),
+//                     createDetailRow("Nom", patient.getLastName() + " " + patient.getFirstName()),
+//                     createDetailRow("Date de naissance", patient.getDateOfBirth() != null ?
+//                             patient.getDateOfBirth().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "N/A"),
+//                     createDetailRow("Sexe", patient.getGender() != null ? patient.getGender().toString() : "N/A")
+//             );
+//         }
 
-        // Section Examen
-        VerticalLayout examSection = new VerticalLayout();
-        examSection.setPadding(false);
-        examSection.setSpacing(false);
+//         // Section Examen
+//         VerticalLayout examSection = new VerticalLayout();
+//         examSection.setPadding(false);
+//         examSection.setSpacing(false);
 
-        H4 examTitle = new H4("Informations Examen");
-        examTitle.getStyle().set("color", "var(--lumo-primary-text-color)");
+//         H4 examTitle = new H4("Informations Examen");
+//         examTitle.getStyle().set("color", "var(--lumo-primary-text-color)");
 
-        examSection.add(
-                examTitle,
-                createDetailRow("N° Accession", exam.getAccessionNumber()),
-                createDetailRow("Modalité", exam.getModalityCode()),
-                createDetailRow("Médecin prescripteur", exam.getMedecin() != null ?
-                        "Dr. " + exam.getMedecin().getFirstName() + " " + exam.getMedecin().getLastName() : "N/A"),
-                createDetailRow("Statut", exam.getStatus() != null ? exam.getStatus().toString() : "N/A"),
-                createDetailRow("Priorité", exam.getPriority() != null ? exam.getPriority().toString() : "NORMAL"),
-                createDetailRow("Date programmée", exam.getScheduledDateTime() != null ?
-                        exam.getScheduledDateTime().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A")
-        );
+//         examSection.add(
+//                 examTitle,
+//                 createDetailRow("N° Accession", exam.getAccessionNumber()),
+//                 createDetailRow("Modalité", exam.getModalityCode()),
+//                 createDetailRow("Médecin prescripteur", exam.getMedecin() != null ?
+//                         "Dr. " + exam.getMedecin().getFirstName() + " " + exam.getMedecin().getLastName() : "N/A"),
+//                 createDetailRow("Statut", exam.getStatus() != null ? exam.getStatus().toString() : "N/A"),
+//                 createDetailRow("Priorité", exam.getPriority() != null ? exam.getPriority().toString() : "NORMAL"),
+//                 createDetailRow("Date programmée", exam.getScheduledDateTime() != null ?
+//                         exam.getScheduledDateTime().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "N/A")
+//         );
 
-        // Section Instructions
-        String instructionsText = "";
-        try {
-            if (exam.getProcedure() != null) {
-                // Accès sécurisé aux propriétés de la procédure
-                String procedureName = exam.getProcedure().getName();
-                if (procedureName != null) {
-                    instructionsText = procedureName;
-                }
+//         // Section Instructions
+//         String instructionsText = "";
+//         try {
+//             if (exam.getProcedure() != null) {
+//                 // Accès sécurisé aux propriétés de la procédure
+//                 String procedureName = exam.getProcedure().getName();
+//                 if (procedureName != null) {
+//                     instructionsText = procedureName;
+//                 }
                 
-                String description = exam.getProcedure().getDescription();
-                if (description != null && !description.isEmpty()) {
-                    instructionsText += "\n" + description;
-                }
+//                 String description = exam.getProcedure().getDescription();
+//                 if (description != null && !description.isEmpty()) {
+//                     instructionsText += "\n" + description;
+//                 }
                 
-                // Afficher le code de la modalité
-                if (exam.getProcedure().getModalityType() != null) {
-                    instructionsText += "\n[" + exam.getProcedure().getModalityType().getCode() + "]";
-                }
+//                 // Afficher le code de la modalité
+//                 if (exam.getProcedure().getModalityType() != null) {
+//                     instructionsText += "\n[" + exam.getProcedure().getModalityType().getCode() + "]";
+//                 }
                 
-                Boolean contrastRequired = exam.getProcedure().getContrastRequired();
-                if (contrastRequired != null && contrastRequired) {
-                    instructionsText += "\n\nInjection de contraste requise";
-                    String contrastType = exam.getProcedure().getContrastType();
-                    if (contrastType != null) {
-                        instructionsText += " - " + contrastType;
-                    }
-                }
-            }
+//                 Boolean contrastRequired = exam.getProcedure().getContrastRequired();
+//                 if (contrastRequired != null && contrastRequired) {
+//                     instructionsText += "\n\nInjection de contraste requise";
+//                     String contrastType = exam.getProcedure().getContrastType();
+//                     if (contrastType != null) {
+//                         instructionsText += " - " + contrastType;
+//                     }
+//                 }
+//             }
             
-            String additionalInstructions = exam.getAdditionalInstructions();
-            if (additionalInstructions != null && !additionalInstructions.isEmpty()) {
-                if (!instructionsText.isEmpty()) {
-                    instructionsText += "\n\n";
-                }
-                instructionsText += additionalInstructions;
-            }
-        } catch (Exception e) {
-            // En cas d'erreur de chargement lazy, afficher un message par défaut
-            instructionsText = exam.getAdditionalInstructions() != null ? 
-                exam.getAdditionalInstructions() : "Informations de procédure non disponibles";
-        }
+//             String additionalInstructions = exam.getAdditionalInstructions();
+//             if (additionalInstructions != null && !additionalInstructions.isEmpty()) {
+//                 if (!instructionsText.isEmpty()) {
+//                     instructionsText += "\n\n";
+//                 }
+//                 instructionsText += additionalInstructions;
+//             }
+//         } catch (Exception e) {
+//             // En cas d'erreur de chargement lazy, afficher un message par défaut
+//             instructionsText = exam.getAdditionalInstructions() != null ? 
+//                 exam.getAdditionalInstructions() : "Informations de procédure non disponibles";
+//         }
         
-        if (!instructionsText.isEmpty()) {
-            VerticalLayout instructionsSection = new VerticalLayout();
-            instructionsSection.setPadding(false);
+//         if (!instructionsText.isEmpty()) {
+//             VerticalLayout instructionsSection = new VerticalLayout();
+//             instructionsSection.setPadding(false);
 
-            H4 instructionsTitle = new H4("Instructions");
-            instructionsTitle.getStyle().set("color", "var(--lumo-primary-text-color)");
+//             H4 instructionsTitle = new H4("Instructions");
+//             instructionsTitle.getStyle().set("color", "var(--lumo-primary-text-color)");
 
-            Paragraph instructionsParagraph = new Paragraph(instructionsText);
-            instructionsParagraph.getStyle()
-                    .set("background", "var(--lumo-contrast-5pct)")
-                    .set("padding", "12px")
-                    .set("border-radius", "4px")
-                    .set("white-space", "pre-wrap");
+//             Paragraph instructionsParagraph = new Paragraph(instructionsText);
+//             instructionsParagraph.getStyle()
+//                     .set("background", "var(--lumo-contrast-5pct)")
+//                     .set("padding", "12px")
+//                     .set("border-radius", "4px")
+//                     .set("white-space", "pre-wrap");
 
-            instructionsSection.add(instructionsTitle, instructionsParagraph);
-            content.add(patientSection, new Hr(), examSection, new Hr(), instructionsSection);
-        } else {
-            content.add(patientSection, new Hr(), examSection);
-        }
+//             instructionsSection.add(instructionsTitle, instructionsParagraph);
+//             content.add(patientSection, new Hr(), examSection, new Hr(), instructionsSection);
+//         } else {
+//             content.add(patientSection, new Hr(), examSection);
+//         }
 
-        Button closeBtn = new Button("Fermer", e -> dialog.close());
-        closeBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+//         Button closeBtn = new Button("Fermer", e -> dialog.close());
+//         closeBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-        dialog.add(content);
-        dialog.getFooter().add(closeBtn);
-        dialog.open();
-    }
+//         dialog.add(content);
+//         dialog.getFooter().add(closeBtn);
+//         dialog.open();
+//     }
 
-    private HorizontalLayout createDetailRow(String label, String value) {
-        HorizontalLayout row = new HorizontalLayout();
-        row.setWidthFull();
-        row.setPadding(false);
-        row.setSpacing(true);
+//     private HorizontalLayout createDetailRow(String label, String value) {
+//         HorizontalLayout row = new HorizontalLayout();
+//         row.setWidthFull();
+//         row.setPadding(false);
+//         row.setSpacing(true);
 
-        Span labelSpan = new Span(label + ":");
-        labelSpan.getStyle()
-                .set("font-weight", "600")
-                .set("min-width", "180px")
-                .set("color", "var(--lumo-secondary-text-color)");
+//         Span labelSpan = new Span(label + ":");
+//         labelSpan.getStyle()
+//                 .set("font-weight", "600")
+//                 .set("min-width", "180px")
+//                 .set("color", "var(--lumo-secondary-text-color)");
 
-        Span valueSpan = new Span(value != null ? value : "N/A");
-        valueSpan.getStyle().set("color", "var(--lumo-body-text-color)");
+//         Span valueSpan = new Span(value != null ? value : "N/A");
+//         valueSpan.getStyle().set("color", "var(--lumo-body-text-color)");
 
-        row.add(labelSpan, valueSpan);
-        return row;
-    }
+//         row.add(labelSpan, valueSpan);
+//         return row;
+//     }
 
-    private void confirmDeleteExam(Exam exam) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Confirmation de suppression");
-        dialog.setWidth("500px");
+//     private void confirmDeleteExam(Exam exam) {
+//         Dialog dialog = new Dialog();
+//         dialog.setHeaderTitle("Confirmation de suppression");
+//         dialog.setWidth("500px");
 
-        VerticalLayout content = new VerticalLayout();
-        content.setPadding(true);
+//         VerticalLayout content = new VerticalLayout();
+//         content.setPadding(true);
 
-        Div warningIcon = new Div();
-        warningIcon.getStyle()
-                .set("text-align", "center")
-                .set("font-size", "48px")
-                .set("color", "var(--lumo-error-color)")
-                .set("margin-bottom", "16px");
-        warningIcon.add(VaadinIcon.WARNING.create());
+//         Div warningIcon = new Div();
+//         warningIcon.getStyle()
+//                 .set("text-align", "center")
+//                 .set("font-size", "48px")
+//                 .set("color", "var(--lumo-error-color)")
+//                 .set("margin-bottom", "16px");
+//         warningIcon.add(VaadinIcon.WARNING.create());
 
-        Paragraph message = new Paragraph(
-                "Êtes-vous sûr de vouloir supprimer cet examen ?"
-        );
-        message.getStyle()
-                .set("text-align", "center")
-                .set("font-size", "16px");
+//         Paragraph message = new Paragraph(
+//                 "Êtes-vous sûr de vouloir supprimer cet examen ?"
+//         );
+//         message.getStyle()
+//                 .set("text-align", "center")
+//                 .set("font-size", "16px");
 
-        if (exam.getPatient() != null) {
-            Paragraph details = new Paragraph(
-                    "Patient: " + exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName() + "\n" +
-                            "Modalité: " + exam.getModalityCode() + "\n" +
-                            "N° Accession: " + exam.getAccessionNumber()
-            );
-            details.getStyle()
-                    .set("text-align", "center")
-                    .set("background", "var(--lumo-contrast-5pct)")
-                    .set("padding", "12px")
-                    .set("border-radius", "4px")
-                    .set("white-space", "pre-wrap");
-            content.add(warningIcon, message, details);
-        } else {
-            content.add(warningIcon, message);
-        }
+//         if (exam.getPatient() != null) {
+//             Paragraph details = new Paragraph(
+//                     "Patient: " + exam.getPatient().getLastName() + " " + exam.getPatient().getFirstName() + "\n" +
+//                             "Modalité: " + exam.getModalityCode() + "\n" +
+//                             "N° Accession: " + exam.getAccessionNumber()
+//             );
+//             details.getStyle()
+//                     .set("text-align", "center")
+//                     .set("background", "var(--lumo-contrast-5pct)")
+//                     .set("padding", "12px")
+//                     .set("border-radius", "4px")
+//                     .set("white-space", "pre-wrap");
+//             content.add(warningIcon, message, details);
+//         } else {
+//             content.add(warningIcon, message);
+//         }
 
-        Button confirmBtn = new Button("Supprimer définitivement", e -> {
-            examRepo.delete(exam);
-            updateExamList();
-            dialog.close();
-            Notification.show("Examen supprimé avec succès", 3000, Notification.Position.BOTTOM_START)
-                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-        });
-        confirmBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_PRIMARY);
-        confirmBtn.setIcon(VaadinIcon.TRASH.create());
+//         Button confirmBtn = new Button("Supprimer définitivement", e -> {
+//             examRepo.delete(exam);
+//             updateExamList();
+//             dialog.close();
+//             Notification.show("Examen supprimé avec succès", 3000, Notification.Position.BOTTOM_START)
+//                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+//         });
+//         confirmBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_PRIMARY);
+//         confirmBtn.setIcon(VaadinIcon.TRASH.create());
 
-        Button cancelBtn = new Button("Annuler", e -> dialog.close());
-        cancelBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+//         Button cancelBtn = new Button("Annuler", e -> dialog.close());
+//         cancelBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        HorizontalLayout buttons = new HorizontalLayout(cancelBtn, confirmBtn);
-        buttons.setJustifyContentMode(JustifyContentMode.CENTER);
-        buttons.setPadding(true);
-        buttons.setSpacing(true);
+//         HorizontalLayout buttons = new HorizontalLayout(cancelBtn, confirmBtn);
+//         buttons.setJustifyContentMode(JustifyContentMode.CENTER);
+//         buttons.setPadding(true);
+//         buttons.setSpacing(true);
 
-        dialog.add(content);
-        dialog.getFooter().add(buttons);
-        dialog.open();
-    }
+//         dialog.add(content);
+//         dialog.getFooter().add(buttons);
+//         dialog.open();
+//     }
 
-    private void updateProcedureDetails(Div detailsContainer, ProcedureCatalog procedure) {
-        detailsContainer.removeAll();
+//     private void updateProcedureDetails(Div detailsContainer, ProcedureCatalog procedure) {
+//         detailsContainer.removeAll();
         
-        VerticalLayout content = new VerticalLayout();
-        content.setSpacing(false);
-        content.setPadding(false);
+//         VerticalLayout content = new VerticalLayout();
+//         content.setSpacing(false);
+//         content.setPadding(false);
         
-        // Titre
-        H4 title = new H4("Détails de la procédure sélectionnée");
-        title.getStyle().set("margin", "0 0 1rem 0").set("color", "#495057");
+//         // Titre
+//         H4 title = new H4("Détails de la procédure sélectionnée");
+//         title.getStyle().set("margin", "0 0 1rem 0").set("color", "#495057");
         
-        // Informations principales
-        HorizontalLayout infoRow = new HorizontalLayout();
-        infoRow.setWidthFull();
-        infoRow.setSpacing(true);
+//         // Informations principales
+//         HorizontalLayout infoRow = new HorizontalLayout();
+//         infoRow.setWidthFull();
+//         infoRow.setSpacing(true);
         
-        // Code et nom
-        VerticalLayout codeNameCol = new VerticalLayout();
-        codeNameCol.setSpacing(false);
-        codeNameCol.setPadding(false);
+//         // Code et nom
+//         VerticalLayout codeNameCol = new VerticalLayout();
+//         codeNameCol.setSpacing(false);
+//         codeNameCol.setPadding(false);
         
-        Span codeLabel = new Span("Code:");
-        codeLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
-        Span codeValue = new Span(procedure.getProcedureCode() != null ? procedure.getProcedureCode() : "N/A");
-        codeValue.getStyle().set("font-weight", "500");
+//         Span codeLabel = new Span("Code:");
+//         codeLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+//         Span codeValue = new Span(procedure.getProcedureCode() != null ? procedure.getProcedureCode() : "N/A");
+//         codeValue.getStyle().set("font-weight", "500");
         
-        Span nameLabel = new Span("Nom:");
-        nameLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
-        Span nameValue = new Span(procedure.getName());
-        nameValue.getStyle().set("font-weight", "500");
+//         Span nameLabel = new Span("Nom:");
+//         nameLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+//         Span nameValue = new Span(procedure.getName());
+//         nameValue.getStyle().set("font-weight", "500");
         
-        codeNameCol.add(codeLabel, codeValue, nameLabel, nameValue);
+//         codeNameCol.add(codeLabel, codeValue, nameLabel, nameValue);
         
-        // Modalité et région
-        VerticalLayout modalityRegionCol = new VerticalLayout();
-        modalityRegionCol.setSpacing(false);
-        modalityRegionCol.setPadding(false);
+//         // Modalité et région
+//         VerticalLayout modalityRegionCol = new VerticalLayout();
+//         modalityRegionCol.setSpacing(false);
+//         modalityRegionCol.setPadding(false);
         
-        Span modalityLabel = new Span("Modalité:");
-        modalityLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
-        Span modalityValue = new Span(procedure.getModalityType() != null ? 
-                procedure.getModalityType().getCode() + " - " + procedure.getModalityType().getName() : "N/A");
-        modalityValue.getStyle().set("font-weight", "500");
+//         Span modalityLabel = new Span("Modalité:");
+//         modalityLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+//         Span modalityValue = new Span(procedure.getModalityType() != null ? 
+//                 procedure.getModalityType().getCode() + " - " + procedure.getModalityType().getName() : "N/A");
+//         modalityValue.getStyle().set("font-weight", "500");
         
-        Span regionLabel = new Span("Région:");
-        regionLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
-        Span regionValue = new Span(procedure.getRegion() != null ? procedure.getRegion() : "N/A");
-        regionValue.getStyle().set("font-weight", "500");
+//         Span regionLabel = new Span("Région:");
+//         regionLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+//         Span regionValue = new Span(procedure.getRegion() != null ? procedure.getRegion() : "N/A");
+//         regionValue.getStyle().set("font-weight", "500");
         
-        modalityRegionCol.add(modalityLabel, modalityValue, regionLabel, regionValue);
+//         modalityRegionCol.add(modalityLabel, modalityValue, regionLabel, regionValue);
         
-        // Latéralité et contraste
-        VerticalLayout lateralContrastCol = new VerticalLayout();
-        lateralContrastCol.setSpacing(false);
-        lateralContrastCol.setPadding(false);
+//         // Latéralité et contraste
+//         VerticalLayout lateralContrastCol = new VerticalLayout();
+//         lateralContrastCol.setSpacing(false);
+//         lateralContrastCol.setPadding(false);
         
-        Span lateralLabel = new Span("Latéralité:");
-        lateralLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
-        Span lateralValue = new Span(procedure.getLaterality() != null ? procedure.getLaterality() : "N/A");
-        lateralValue.getStyle().set("font-weight", "500");
+//         Span lateralLabel = new Span("Latéralité:");
+//         lateralLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+//         Span lateralValue = new Span(procedure.getLaterality() != null ? procedure.getLaterality() : "N/A");
+//         lateralValue.getStyle().set("font-weight", "500");
         
-        Span contrastLabel = new Span("Contraste:");
-        contrastLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
-        Span contrastValue = new Span(Boolean.TRUE.equals(procedure.getContrastRequired()) ? 
-                "Oui ⚡" : "Non");
-        contrastValue.getStyle().set("font-weight", "500");
+//         Span contrastLabel = new Span("Contraste:");
+//         contrastLabel.getStyle().set("font-weight", "600").set("color", "#6c757d");
+//         Span contrastValue = new Span(Boolean.TRUE.equals(procedure.getContrastRequired()) ? 
+//                 "Oui ⚡" : "Non");
+//         contrastValue.getStyle().set("font-weight", "500");
         
-        lateralContrastCol.add(lateralLabel, lateralValue, contrastLabel, contrastValue);
+//         lateralContrastCol.add(lateralLabel, lateralValue, contrastLabel, contrastValue);
         
-        infoRow.add(codeNameCol, modalityRegionCol, lateralContrastCol);
-        infoRow.setFlexGrow(1, codeNameCol);
-        infoRow.setFlexGrow(1, modalityRegionCol);
-        infoRow.setFlexGrow(1, lateralContrastCol);
+//         infoRow.add(codeNameCol, modalityRegionCol, lateralContrastCol);
+//         infoRow.setFlexGrow(1, codeNameCol);
+//         infoRow.setFlexGrow(1, modalityRegionCol);
+//         infoRow.setFlexGrow(1, lateralContrastCol);
         
-        // Détails du contraste (si applicable)
-        if (Boolean.TRUE.equals(procedure.getContrastRequired())) {
-            HorizontalLayout contrastDetailsRow = new HorizontalLayout();
-            contrastDetailsRow.setWidthFull();
-            contrastDetailsRow.setSpacing(true);
-            contrastDetailsRow.getStyle()
-                    .set("background", "#fff3cd")
-                    .set("border", "1px solid #ffeaa7")
-                    .set("border-radius", "4px")
-                    .set("padding", "0.75rem")
-                    .set("margin-top", "0.5rem");
+//         // Détails du contraste (si applicable)
+//         if (Boolean.TRUE.equals(procedure.getContrastRequired())) {
+//             HorizontalLayout contrastDetailsRow = new HorizontalLayout();
+//             contrastDetailsRow.setWidthFull();
+//             contrastDetailsRow.setSpacing(true);
+//             contrastDetailsRow.getStyle()
+//                     .set("background", "#fff3cd")
+//                     .set("border", "1px solid #ffeaa7")
+//                     .set("border-radius", "4px")
+//                     .set("padding", "0.75rem")
+//                     .set("margin-top", "0.5rem");
             
-            Span contrastTitle = new Span("Détails du contraste:");
-            contrastTitle.getStyle().set("font-weight", "600").set("color", "#856404");
+//             Span contrastTitle = new Span("Détails du contraste:");
+//             contrastTitle.getStyle().set("font-weight", "600").set("color", "#856404");
             
-            Span typeInfo = new Span("Type: " + (procedure.getContrastType() != null ? procedure.getContrastType() : "Non spécifié"));
-            Span rateInfo = new Span("Débit: " + (procedure.getInjectionRate() != null ? procedure.getInjectionRate() + " ml/s" : "Non spécifié"));
-            Span volumeInfo = new Span("Volume: " + (procedure.getContrastVolume() != null ? procedure.getContrastVolume() + " ml" : "Non spécifié"));
+//             Span typeInfo = new Span("Type: " + (procedure.getContrastType() != null ? procedure.getContrastType() : "Non spécifié"));
+//             Span rateInfo = new Span("Débit: " + (procedure.getInjectionRate() != null ? procedure.getInjectionRate() + " ml/s" : "Non spécifié"));
+//             Span volumeInfo = new Span("Volume: " + (procedure.getContrastVolume() != null ? procedure.getContrastVolume() + " ml" : "Non spécifié"));
             
-            contrastDetailsRow.add(contrastTitle, typeInfo, rateInfo, volumeInfo);
-            contrastDetailsRow.setFlexGrow(1, contrastTitle);
-            content.add(contrastDetailsRow);
-        }
+//             contrastDetailsRow.add(contrastTitle, typeInfo, rateInfo, volumeInfo);
+//             contrastDetailsRow.setFlexGrow(1, contrastTitle);
+//             content.add(contrastDetailsRow);
+//         }
         
-        // Description (si disponible)
-        if (procedure.getDescription() != null && !procedure.getDescription().trim().isEmpty()) {
-            Span descLabel = new Span("Description:");
-            descLabel.getStyle().set("font-weight", "600").set("color", "#6c757d").set("display", "block");
-            Span descValue = new Span(procedure.getDescription());
-            descValue.getStyle().set("font-style", "italic").set("color", "#495057");
+//         // Description (si disponible)
+//         if (procedure.getDescription() != null && !procedure.getDescription().trim().isEmpty()) {
+//             Span descLabel = new Span("Description:");
+//             descLabel.getStyle().set("font-weight", "600").set("color", "#6c757d").set("display", "block");
+//             Span descValue = new Span(procedure.getDescription());
+//             descValue.getStyle().set("font-style", "italic").set("color", "#495057");
             
-            content.add(descLabel, descValue);
-        }
+//             content.add(descLabel, descValue);
+//         }
         
-        content.add(title, infoRow);
-        detailsContainer.add(content);
-    }
-}
+//         content.add(title, infoRow);
+//         detailsContainer.add(content);
+//     }
+// }

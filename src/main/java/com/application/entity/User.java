@@ -43,7 +43,7 @@ public class User {
     @Column(nullable = false)
     private Boolean active = true;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "hospital_id")
     @EqualsAndHashCode.Exclude
     private Hospital hospital;

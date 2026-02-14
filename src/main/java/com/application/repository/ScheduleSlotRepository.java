@@ -14,15 +14,18 @@ import java.util.List;
 @Repository
 public interface ScheduleSlotRepository extends JpaRepository<ScheduleSlot, Long> {
 
-    @Query("SELECT s FROM ScheduleSlot s JOIN FETCH s.orderLine JOIN FETCH s.orderLine.patient JOIN FETCH s.orderLine.medecin JOIN FETCH s.modalityResource JOIN FETCH s.modalityResource.modalityType JOIN FETCH s.modalityResource.room WHERE s.modalityResource = :modalityResource AND s.status = :status ORDER BY s.scheduledStartTime")
+    @Query("SELECT s FROM ScheduleSlot s JOIN FETCH s.orderLine e JOIN FETCH e.order o JOIN FETCH o.patient JOIN FETCH o.doctor JOIN FETCH s.modalityResource JOIN FETCH s.modalityResource.modalityType JOIN FETCH s.modalityResource.room WHERE s.modalityResource = :modalityResource AND s.status = :status ORDER BY s.scheduledStartTime")
     List<ScheduleSlot> findByModalityResourceAndStatusOrderByScheduledStartTime(
             Modality modalityResource, ScheduleSlotStatus status);
 
     List<ScheduleSlot> findByModalityResourceAndScheduledStartTimeBetweenOrderByScheduledStartTime(
             Modality modalityResource, LocalDateTime start, LocalDateTime end);
 
-    @Query("SELECT s FROM ScheduleSlot s JOIN FETCH s.orderLine JOIN FETCH s.orderLine.patient JOIN FETCH s.orderLine.medecin JOIN FETCH s.modalityResource JOIN FETCH s.modalityResource.modalityType JOIN FETCH s.modalityResource.room WHERE s.status = :status ORDER BY s.scheduledStartTime")
+    @Query("SELECT s FROM ScheduleSlot s JOIN FETCH s.orderLine e JOIN FETCH e.order o JOIN FETCH o.patient JOIN FETCH o.doctor JOIN FETCH s.modalityResource JOIN FETCH s.modalityResource.modalityType JOIN FETCH s.modalityResource.room WHERE s.status = :status ORDER BY s.scheduledStartTime")
     List<ScheduleSlot> findByStatusOrderByScheduledStartTime(ScheduleSlotStatus status);
+
+    @Query("SELECT s FROM ScheduleSlot s JOIN FETCH s.orderLine e JOIN FETCH e.order o JOIN FETCH o.patient JOIN FETCH o.doctor JOIN FETCH s.modalityResource JOIN FETCH s.modalityResource.modalityType JOIN FETCH s.modalityResource.room WHERE s.status = :status AND o.hospital.id = :hospitalId ORDER BY s.scheduledStartTime")
+    List<ScheduleSlot> findByStatusAndHospitalIdOrderByScheduledStartTime(@Param("status") ScheduleSlotStatus status, @Param("hospitalId") Long hospitalId);
 
     @Query("SELECT s FROM ScheduleSlot s WHERE s.modalityResource = :modality " +
            "AND s.scheduledStartTime < :endTime AND s.scheduledEndTime > :startTime " +
@@ -32,7 +35,7 @@ public interface ScheduleSlotRepository extends JpaRepository<ScheduleSlot, Long
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime);
 
-    @Query("SELECT s FROM ScheduleSlot s JOIN FETCH s.orderLine JOIN FETCH s.modalityResource " +
+    @Query("SELECT s FROM ScheduleSlot s JOIN FETCH s.orderLine e JOIN FETCH e.order o JOIN FETCH s.modalityResource " +
            "WHERE s.scheduledStartTime >= :start AND s.scheduledStartTime <= :end " +
            "ORDER BY s.scheduledStartTime")
     List<ScheduleSlot> findSlotsBetweenDatesWithRelations(

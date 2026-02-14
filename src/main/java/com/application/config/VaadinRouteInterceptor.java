@@ -16,7 +16,8 @@ public class VaadinRouteInterceptor implements HandlerInterceptor {
         // Forcer la redirection vers login si c'est la racine et non authentifié
         if (path.equals("/") || path.equals("") || path.equals("/login")) {
             // Laisser Vaadin gérer la route /login normalement
-            if (!path.equals("/login")) {
+            // Ne pas rediriger automatiquement vers /login pour éviter la boucle
+            if (!path.equals("/login") && !path.equals("/") && !path.equals("")) {
                 response.sendRedirect("/login");
                 return false;
             }

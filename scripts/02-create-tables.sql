@@ -66,6 +66,65 @@ CREATE TABLE patients (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Table des hôpitaux
+CREATE TABLE hospitals (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    address TEXT,
+    city VARCHAR(50),
+    postal_code VARCHAR(20),
+    country VARCHAR(50),
+    phone VARCHAR(20),
+    email VARCHAR(100),
+    website VARCHAR(100),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des ordres
+CREATE TABLE orders (
+    id BIGSERIAL PRIMARY KEY,
+    study_instance_uid VARCHAR(64) NOT NULL UNIQUE,
+    accession_number VARCHAR(50) NOT NULL UNIQUE,
+    hospital_id BIGINT NOT NULL,
+    doctor_id BIGINT NOT NULL,
+    patient_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (hospital_id) REFERENCES hospitals(id),
+    FOREIGN KEY (doctor_id) REFERENCES users(id),
+    FOREIGN KEY (patient_id) REFERENCES patients(id)
+);
+
+-- Table des procédures (spécifiques aux examens)
+CREATE TABLE procedures (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    procedure_code VARCHAR(20),
+    modality_type_id BIGINT,
+    region VARCHAR(50),
+    laterality VARCHAR(10),
+    contrast_required BOOLEAN DEFAULT false,
+    contrast_type VARCHAR(50),
+    injection_rate DECIMAL(10,2),
+    injection_volume DECIMAL(10,2),
+    delay_seconds INTEGER,
+    preparation_instructions TEXT,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
+    is_emergency BOOLEAN DEFAULT false,
+    notes TEXT,
+    special_instructions TEXT,
+    scheduled_duration_minutes INTEGER,
+    actual_duration_minutes INTEGER,
+    procedure_catalog_id BIGINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (modality_type_id) REFERENCES modality_types(id),
+    FOREIGN KEY (procedure_catalog_id) REFERENCES procedure_catalogs(id)
+);
+
 -- Table des catalogues de procédures
 CREATE TABLE procedure_catalogs (
     id BIGSERIAL PRIMARY KEY,
@@ -99,13 +158,15 @@ CREATE TABLE exams (
     procedure_id BIGINT,
     modality_type_id BIGINT NOT NULL,
     modality_id BIGINT,
+    order_id BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (medecin_id) REFERENCES users(id),
-    FOREIGN KEY (procedure_id) REFERENCES procedure_catalogs(id),
+    FOREIGN KEY (procedure_id) REFERENCES procedures(id),
     FOREIGN KEY (modality_type_id) REFERENCES modality_types(id),
-    FOREIGN KEY (modality_id) REFERENCES modalities(id)
+    FOREIGN KEY (modality_id) REFERENCES modalities(id),
+    FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 
 -- Table des rapports
@@ -151,6 +212,23 @@ CREATE INDEX idx_procedures_region ON procedure_catalogs(region);
 CREATE INDEX idx_modalities_aetitle ON modalities(aetitle);
 CREATE INDEX idx_modalities_modality_type ON modalities(modality_type_id);
 
+CREATE INDEX idx_hospitals_name ON hospitals(name);
+CREATE INDEX idx_hospitals_city ON hospitals(city);
+CREATE INDEX idx_hospitals_active ON hospitals(is_active);
+
+CREATE INDEX idx_orders_accession_number ON orders(accession_number);
+CREATE INDEX idx_orders_study_uid ON orders(study_instance_uid);
+CREATE INDEX idx_orders_hospital_id ON orders(hospital_id);
+CREATE INDEX idx_orders_doctor_id ON orders(doctor_id);
+CREATE INDEX idx_orders_patient_id ON orders(patient_id);
+
+CREATE INDEX idx_procedures_code ON procedures(procedure_code);
+CREATE INDEX idx_procedures_modality_type ON procedures(modality_type_id);
+CREATE INDEX idx_procedures_region ON procedures(region);
+CREATE INDEX idx_procedures_catalog_id ON procedures(procedure_catalog_id);
+
+CREATE INDEX idx_exams_order_id ON exams(order_id);
+
 CREATE INDEX idx_modality_types_code ON modality_types(code);
 
 -- Créer les triggers pour mettre à jour les timestamps
@@ -169,13 +247,22 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 CREATE TRIGGER update_patients_updated_at BEFORE UPDATE ON patients 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_hospitals_updated_at BEFORE UPDATE ON hospitals 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_procedures_updated_at BEFORE UPDATE ON procedures 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_exams_updated_at BEFORE UPDATE ON exams 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_reports_updated_at BEFORE UPDATE ON reports 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_procedures_updated_at BEFORE UPDATE ON procedure_catalogs 
+CREATE TRIGGER update_procedure_catalogs_updated_at BEFORE UPDATE ON procedure_catalogs 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_modalities_updated_at BEFORE UPDATE ON modalities 

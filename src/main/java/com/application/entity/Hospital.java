@@ -59,6 +59,10 @@ public class Hospital {
     @EqualsAndHashCode.Exclude
     private List<User> users;
 
+    @OneToMany(mappedBy = "hospital", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @EqualsAndHashCode.Exclude
+    private List<Order> orders;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

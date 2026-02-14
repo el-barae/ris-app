@@ -277,7 +277,13 @@ public class SettingsView extends VerticalLayout {
                 .setHeader("Username")
                 .setSortable(true);
 
-        grid.addColumn(user -> user.getFirstName() + " " + user.getLastName())
+        grid.addColumn(user -> {
+                    try {
+                        return user.getFirstName() + " " + user.getLastName();
+                    } catch (Exception e) {
+                        return user.getUsername(); // Fallback si lazy loading échoue
+                    }
+                })
                 .setHeader("Nom complet")
                 .setSortable(true);
 
@@ -375,8 +381,14 @@ public class SettingsView extends VerticalLayout {
         if (user != null) {
             username.setValue(user.getUsername());
             email.setValue(user.getEmail());
-            firstName.setValue(user.getFirstName());
-            lastName.setValue(user.getLastName());
+            try {
+                firstName.setValue(user.getFirstName());
+                lastName.setValue(user.getLastName());
+            } catch (Exception e) {
+                // Si lazy loading échoue, laisser les champs vides
+                firstName.clear();
+                lastName.clear();
+            }
             role.setValue(user.getRole());
             password.setPlaceholder("Laisser vide pour ne pas changer");
         }

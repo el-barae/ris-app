@@ -1,0 +1,61 @@
+{
+  "Name": "ORTHANC_CENTRAL",
+
+  "RegisteredUsers": {
+    "orthanc": "orthanc"
+  },
+  "AuthenticationEnabled": false,
+  "RemoteAccessAllowed": true,
+
+  "DicomServerEnabled": true,
+  "DicomAet": "ORTHANC_CENTRAL",
+  "DicomPort": 4242,
+  "DicomCheckCalledAet": false,
+  "DicomCheckModalityHost": false,
+  "DicomAlwaysAllowEcho": true,
+  "DicomAlwaysAllowStore": true,
+  "DicomAlwaysAllowFind": true,
+  "DicomAlwaysAllowGet": true,
+  "DicomAlwaysAllowMove": true,
+
+  "Plugins": ["/usr/share/orthanc/plugins"],
+
+  "DicomWeb": {
+    "Enable": true,
+    "Root": "/dicom-web/",
+    "EnableWado": true,
+    "WadoRoot": "/wado",
+    "EnableQido": true,
+    "QidoRoot": "/dicom-web",
+    "EnableStow": true,
+    "StowRoot": "/dicom-web",
+    "StudiesMetadata": "Full",
+    "SeriesMetadata": "Full"
+  },
+
+  "HttpHeaders": {
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Headers": "Accept, Accept-Language, Content-Language, Content-Type, Authorization, X-Requested-With",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Expose-Headers": "Content-Type, Content-Length"
+  },
+
+  "MaximumStorageSize": 0,
+  "MaximumPatientCount": 0,
+
+  "SslEnabled": false,
+
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "IndexDirectory": "/var/lib/orthanc/db",
+
+  "LogLevel": "verbose",
+  "LogFile": "",
+
+  "HttpTimeout": 60,
+  "DicomAssociationCloseDelay": 5,
+  "DicomScuTimeout": 10,
+
+  "SaveJobs": true,
+  "JobsHistorySize": 10
+}
