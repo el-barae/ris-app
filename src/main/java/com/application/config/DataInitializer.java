@@ -7,6 +7,7 @@ import com.application.repository.ModalityTypeRepository;
 import com.application.repository.ModalityRepository;
 import com.application.repository.HospitalRepository;
 import com.application.repository.ProcedureRepository;
+import com.application.repository.TechnicianRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -50,6 +51,9 @@ public class DataInitializer implements CommandLineRunner {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private TechnicianRepository technicianRepository;
+
     private final Random random = new Random();
 
     @Override
@@ -62,6 +66,7 @@ public class DataInitializer implements CommandLineRunner {
         initializeModalities();
         initializeProcedures();
         initializeUsers();
+        initializeTechnicians();
         initializePatients();
         initializeOrders();
         initializeProceduresForExams();
@@ -91,6 +96,13 @@ public class DataInitializer implements CommandLineRunner {
         createUser("tech1", "admin123", "Pierre", "Technicien", UserRole.TECHNICIEN, "tech1@radiology.com");
         createUser("sec1", "admin123", "Sophie", "Secrétaire", UserRole.SECRETAIRE, "sec1@radiology.com");
         createUser("radio1", "admin123", "Robert", "Radiologue", UserRole.RADIOLOGUE, "radio1@radiology.com");
+        
+        // Créer les utilisateurs supplémentaires pour les techniciens
+        createUser("tech_jean_martin", "admin123", "Jean", "Martin", UserRole.TECHNICIEN, "jean.martin@radiology.com");
+        createUser("tech_marie_dubois", "admin123", "Marie", "Dubois", UserRole.TECHNICIEN, "marie.dubois@radiology.com");
+        createUser("tech_pierre_bernard", "admin123", "Pierre", "Bernard", UserRole.TECHNICIEN, "pierre.bernard@radiology.com");
+        createUser("tech_sophie_petit", "admin123", "Sophie", "Petit", UserRole.TECHNICIEN, "sophie.petit@radiology.com");
+        createUser("tech_claude_robert", "admin123", "Claude", "Robert", UserRole.TECHNICIEN, "claude.robert@radiology.com");
 
         System.out.println("✅ Utilisateurs initialisés");
     }
@@ -590,5 +602,102 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         System.out.println("✅ Rapports initialisés");
+    }
+
+    private void initializeTechnicians() {
+        System.out.println("=== Initialisation des techniciens ===");
+        
+        if (technicianRepository.count() > 0) {
+            System.out.println("=== Les techniciens existent déjà ===");
+            return;
+        }
+
+        List<ModalityType> modalityTypes = modalityTypeRepository.findAll();
+        
+        // Récupérer les utilisateurs pour les techniciens
+        User jeanMartinUser = userService.findByUsername("tech_jean_martin");
+        User marieDuboisUser = userService.findByUsername("tech_marie_dubois");
+        User pierreBernardUser = userService.findByUsername("tech_pierre_bernard");
+        User sophiePetitUser = userService.findByUsername("tech_sophie_petit");
+        User claudeRobertUser = userService.findByUsername("tech_claude_robert");
+
+        // Créer les techniciens
+        Technician jeanMartin = createTechnician("TECH001", "Jean", "Martin", "0612345678", 
+            "jean.martin@radiology.com", "CT et Radiographie", jeanMartinUser);
+        
+        Technician marieDubois = createTechnician("TECH002", "Marie", "Dubois", "0623456789", 
+            "marie.dubois@radiology.com", "IRM et Echographie", marieDuboisUser);
+        
+        Technician pierreBernard = createTechnician("TECH003", "Pierre", "Bernard", "0634567890", 
+            "pierre.bernard@radiology.com", "Radiographie generale", pierreBernardUser);
+        
+        Technician sophiePetit = createTechnician("TECH004", "Sophie", "Petit", "0645678901", 
+            "sophie.petit@radiology.com", "CT et IRM", sophiePetitUser);
+        
+        Technician claudeRobert = createTechnician("TECH005", "Claude", "Robert", "0656789012", 
+            "claude.robert@radiology.com", "Echographie", claudeRobertUser);
+
+        // Associer les techniciens aux types de modalités
+        // Jean Martin (TECH001) - CT et XR (CR/DX)
+        associateTechnicianWithModalityTypes(jeanMartin, Arrays.asList(
+            modalityTypes.get(0),  // CT
+            modalityTypes.get(8),  // CR
+            modalityTypes.get(9)   // DX
+        ));
+
+        // Marie Dubois (TECH002) - MRI et US
+        associateTechnicianWithModalityTypes(marieDubois, Arrays.asList(
+            modalityTypes.get(1),  // MRI
+            modalityTypes.get(3)   // US
+        ));
+
+        // Pierre Bernard (TECH003) - XR (CR/DX)
+        associateTechnicianWithModalityTypes(pierreBernard, Arrays.asList(
+            modalityTypes.get(8),  // CR
+            modalityTypes.get(9)   // DX
+        ));
+
+        // Sophie Petit (TECH004) - CT et MRI
+        associateTechnicianWithModalityTypes(sophiePetit, Arrays.asList(
+            modalityTypes.get(0),  // CT
+            modalityTypes.get(1)   // MRI
+        ));
+
+        // Claude Robert (TECH005) - US
+        associateTechnicianWithModalityTypes(claudeRobert, Arrays.asList(
+            modalityTypes.get(3)   // US
+        ));
+
+        System.out.println("✅ Techniciens initialisés");
+    }
+
+    private Technician createTechnician(String employeeId, String firstName, String lastName, 
+            String phone, String email, String specialization, User user) {
+        try {
+            Technician technician = new Technician();
+            technician.setEmployeeId(employeeId);
+            technician.setFirstName(firstName);
+            technician.setLastName(lastName);
+            technician.setPhone(phone);
+            technician.setEmail(email);
+            technician.setSpecialization(specialization);
+            technician.setIsActive(true);
+            technician.setUser(user);
+            
+            return technicianRepository.save(technician);
+        } catch (Exception e) {
+            System.err.println("❌ Erreur création technicien " + employeeId + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void associateTechnicianWithModalityTypes(Technician technician, List<ModalityType> modalityTypes) {
+        if (technician != null && modalityTypes != null) {
+            technician.setModalityTypes(modalityTypes);
+            technicianRepository.save(technician);
+            System.out.println("  -> Technicien " + technician.getFullName() + 
+                " associé aux modalités: " + 
+                modalityTypes.stream().map(mt -> mt.getCode()).reduce((a, b) -> a + ", " + b).orElse(""));
+        }
     }
 }

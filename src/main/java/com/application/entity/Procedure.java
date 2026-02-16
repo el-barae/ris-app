@@ -10,6 +10,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "procedures")
@@ -90,6 +92,11 @@ public class Procedure {
     @EqualsAndHashCode.Exclude
     private ProcedureCatalog procedureCatalog;
 
+    // Relation OneToMany avec ProcedureStep
+    @OneToMany(mappedBy = "procedure", cascade = CascadeType.ALL, orphanRemoval = true)
+    @EqualsAndHashCode.Exclude
+    private List<ProcedureStep> procedureSteps = new ArrayList<>();
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -109,5 +116,40 @@ public class Procedure {
         return modalityType != null ? modalityType.getName() : 
                (procedureCatalog != null && procedureCatalog.getModalityType() != null ? 
                 procedureCatalog.getModalityType().getName() : null);
+    }
+
+    // Helper methods for managing procedure steps
+    public void addProcedureStep(ProcedureStep step) {
+        if (!procedureSteps.contains(step)) {
+            procedureSteps.add(step);
+            step.setProcedure(this);
+        }
+    }
+
+    public void removeProcedureStep(ProcedureStep step) {
+        if (procedureSteps.contains(step)) {
+            procedureSteps.remove(step);
+            step.setProcedure(null);
+        }
+    }
+
+    public List<ProcedureStep> getCompletedSteps() {
+        return procedureSteps.stream()
+                .filter(step -> Boolean.TRUE.equals(step.getIsCompleted()))
+                .sorted((s1, s2) -> Integer.compare(s1.getStepOrder(), s2.getStepOrder()))
+                .toList();
+    }
+
+    public List<ProcedureStep> getPendingSteps() {
+        return procedureSteps.stream()
+                .filter(step -> !Boolean.TRUE.equals(step.getIsCompleted()))
+                .sorted((s1, s2) -> Integer.compare(s1.getStepOrder(), s2.getStepOrder()))
+                .toList();
+    }
+
+    public boolean isFullyCompleted() {
+        return procedureSteps.stream()
+                .allMatch(step -> !Boolean.TRUE.equals(step.getIsRequired()) || 
+                                 Boolean.TRUE.equals(step.getIsCompleted()));
     }
 }

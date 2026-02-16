@@ -3,6 +3,7 @@ package com.application.repository;
 import com.application.entity.ScheduleSlot;
 import com.application.entity.ScheduleSlotStatus;
 import com.application.entity.Modality;
+import com.application.entity.Exam;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -44,4 +45,14 @@ public interface ScheduleSlotRepository extends JpaRepository<ScheduleSlot, Long
 
     boolean existsByModalityResourceAndScheduledStartTimeBetween(
             Modality modalityResource, LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT s FROM ScheduleSlot s LEFT JOIN FETCH s.orderLine e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH s.modalityResource LEFT JOIN FETCH s.modalityResource.modalityType LEFT JOIN FETCH s.modalityResource.room LEFT JOIN FETCH s.technician WHERE s.technician.id = :technicianId AND s.status = :status ORDER BY s.scheduledStartTime")
+    List<ScheduleSlot> findByTechnicianIdAndStatusOrderByScheduledStartTime(
+            @Param("technicianId") Long technicianId, 
+            @Param("status") ScheduleSlotStatus status);
+
+    // Méthode simple pour tester
+    List<ScheduleSlot> findByTechnicianIdAndStatus(Long technicianId, ScheduleSlotStatus status);
+
+    List<ScheduleSlot> findByOrderLine(Exam orderLine);
 }

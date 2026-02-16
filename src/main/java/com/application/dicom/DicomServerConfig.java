@@ -1,7 +1,6 @@
 package com.application.dicom;
 
 import com.application.repository.ExamRepository;
-import com.application.service.ExamStatusNotificationService;
 import com.application.service.ExamStatusWebSocketService;
 import org.dcm4che3.data.UID;
 import org.dcm4che3.net.*;
@@ -22,8 +21,8 @@ public class DicomServerConfig {
     @Autowired
     private ExamRepository examRepository;
 
-    @Autowired
-    private ExamStatusNotificationService notificationService;
+//    @Autowired
+//    private ExamStatusNotificationService notificationService;
 
     @Autowired
     private ExamStatusWebSocketService webSocketService;
@@ -87,7 +86,7 @@ public class DicomServerConfig {
         serviceRegistry.addDicomService(new BasicCEchoSCP());
 
         serviceRegistry.addDicomService(new MwlFindScp(examRepository));
-        serviceRegistry.addDicomService(new MppsScp(examRepository, notificationService, webSocketService));
+        serviceRegistry.addDicomService(new MppsScp(examRepository,  webSocketService));
         ae.setDimseRQHandler(serviceRegistry);
 
         // Configuration Réseau

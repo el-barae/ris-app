@@ -4,7 +4,6 @@ import com.application.entity.Exam;
 import com.application.entity.ExamStatus;
 import com.application.entity.ExamStatusMessage;
 import com.application.repository.ExamRepository;
-import com.application.service.ExamStatusNotificationService;
 import com.application.service.ExamStatusWebSocketService;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.Tag;
@@ -19,14 +18,14 @@ import java.io.IOException;
 public class MppsScp extends BasicMPPSSCP {
 
     private final ExamRepository examRepo;
-    private final ExamStatusNotificationService notificationService;
+//    private final ExamStatusNotificationService notificationService;
     private final ExamStatusWebSocketService webSocketService;
 
     public MppsScp(ExamRepository repo,
-                   ExamStatusNotificationService notificationService,
+//                   ExamStatusNotificationService notificationService,
                    ExamStatusWebSocketService webSocketService) {
         this.examRepo = repo;
-        this.notificationService = notificationService;
+//        this.notificationService = notificationService;
         this.webSocketService = webSocketService;
     }
 

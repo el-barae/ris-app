@@ -53,4 +53,8 @@ public class ModalityType {
     @OneToMany(mappedBy = "modalityType", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @EqualsAndHashCode.Exclude
     private List<ProcedureCatalog> procedures;
+
+    @ManyToMany(mappedBy = "modalityTypes", fetch = FetchType.LAZY)
+    @EqualsAndHashCode.Exclude
+    private List<Technician> technicians;
 }

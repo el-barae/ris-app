@@ -43,6 +43,11 @@ public class ScheduleSlot {
     @EqualsAndHashCode.Exclude
     private Modality modalityResource;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "technician_id")
+    @EqualsAndHashCode.Exclude
+    private Technician technician;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

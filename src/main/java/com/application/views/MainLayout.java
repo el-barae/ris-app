@@ -136,6 +136,13 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         getElement().executeJs(
                 "console.log('🚀 Initialisation WebSocket...');" +
                         "" +
+                        // Vérifier si déjà initialisé
+                        "if (window._wsInitialized) {" +
+                        "  console.log('⚠️  WebSocket déjà initialisé, abandon');" +
+                        "  return;" +
+                        "}" +
+                        "window._wsInitialized = true;" +
+                        "" +
                         "function loadScript(src) {" +
                         "  return new Promise((resolve, reject) => {" +
                         "    if (document.querySelector('script[src=\"' + src + '\"]')) {" +
@@ -169,6 +176,11 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
                         "      throw new Error('Stomp non disponible');" +
                         "    }" +
                         "    " +
+                        "    if (window._stompClient && window._stompClient.connected) {" +
+                        "      console.log('⚠️  Déconnexion de l\\'ancienne connexion');" +
+                        "      window._stompClient.disconnect();" +
+                        "    }" +
+                        "    " +
                         "    console.log('✅ SockJS et Stomp disponibles');" +
                         "    console.log('🔌 Connexion au WebSocket...');" +
                         "    " +
@@ -178,18 +190,37 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
                         "    stompClient.debug = function(str) {" +
                         "      console.log('📝 STOMP:', str);" +
                         "    };" +
-                        "    " +
                         "    stompClient.connect({}, function(frame) {" +
                         "      console.log('✅ WebSocket connecté!', frame);" +
                         "      console.log('👂 Abonnement à /topic/exam-status...');" +
+                        "      const processedMessages = new Map();" +
+                        "      const DEDUP_WINDOW_MS = 5000;" + // 5 secondes
                         "      " +
                         "      const subscription = stompClient.subscribe('/topic/exam-status', function(message) {" +
                         "        console.log('📨 Message WebSocket reçu!');" +
-                        "        console.log('📦 Message brut:', message);" +
+                        "        console.log('📦 Timestamp:', new Date().toISOString());" +
+                        "        console.log('📦 Message brut:', message.body);" +
                         "        " +
                         "        try {" +
                         "          const data = JSON.parse(message.body);" +
                         "          console.log('📊 Données parsées:', data);" +
+                        "          " +
+                        "          const messageKey = data.accessionNumber + '_' + data.newStatus;" +
+                        "          const now = Date.now();" +
+                        "          " +
+                        "          const lastProcessed = processedMessages.get(messageKey);" +
+                        "          if (lastProcessed && (now - lastProcessed) < DEDUP_WINDOW_MS) {" +
+                        "            console.warn('⚠️  Message dupliqué ignoré:', messageKey);" +
+                        "            return;" +
+                        "          }" +
+                        "          " +
+                        "          processedMessages.set(messageKey, now);" +
+                        "          " +
+                        "          for (const [key, timestamp] of processedMessages.entries()) {" +
+                        "            if (now - timestamp > DEDUP_WINDOW_MS) {" +
+                        "              processedMessages.delete(key);" +
+                        "            }" +
+                        "          }" +
                         "          " +
                         "          if (!$0 || !$0.$server) {" +
                         "            console.error('❌ $0.$server non disponible');" +
@@ -204,7 +235,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
                         "            data.newStatus," +
                         "            data.message" +
                         "          );" +
-                        "          console.log('✅ showStatusDialog appelé');" +
+                        "          console.log('✅ showStatusDialog appelé avec succès');" +
                         "        } catch (error) {" +
                         "          console.error('❌ Erreur traitement message:', error);" +
                         "          console.error('Stack:', error.stack);" +
@@ -212,8 +243,10 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
                         "      });" +
                         "      " +
                         "      console.log('✅ Abonnement actif:', subscription.id);" +
+                        "      window._subscription = subscription;" +
                         "    }, function(error) {" +
                         "      console.error('❌ Erreur connexion WebSocket:', error);" +
+                        "      window._wsInitialized = false;" + // Permettre retry en cas d'erreur
                         "    });" +
                         "    " +
                         "    window._stompClient = stompClient;" +
@@ -229,6 +262,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
                         "  .catch(error => {" +
                         "    console.error('❌ Erreur fatale WebSocket:', error);" +
                         "    console.error('Stack:', error.stack);" +
+                        "    window._wsInitialized = false;" + // Permettre retry en cas d'erreur
                         "  });"
         );
     }
@@ -336,7 +370,7 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
     }
 
     private void showNotification(String message, String status) {
-        Notification notification = new Notification(message, 5000, Notification.Position.TOP_END);
+        Notification notification = new Notification(message, 4000, Notification.Position.TOP_END);
 
         if ("COMPLETED".equals(status)) {
             notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);

@@ -149,8 +149,9 @@ public class OrderView extends VerticalLayout {
         Button newOrderBtn = new Button("Nouvel Ordre", VaadinIcon.PLUS.create());
         newOrderBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         newOrderBtn.getStyle()
-                .set("background", "#7f1d1d")
-                .set("border", "none");
+                .set("background", "#7f1d1d !important")
+                .set("color", "white !important")
+                .set("border", "none !important");
         newOrderBtn.addClickListener(e -> openOrderForm(null));
 
         header.add(titleLayout, orderCountBadge);

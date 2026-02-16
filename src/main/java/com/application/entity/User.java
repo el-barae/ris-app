@@ -48,6 +48,10 @@ public class User {
     @EqualsAndHashCode.Exclude
     private Hospital hospital;
 
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    @EqualsAndHashCode.Exclude
+    private Technician technician;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
