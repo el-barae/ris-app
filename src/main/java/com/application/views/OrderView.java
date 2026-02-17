@@ -400,13 +400,6 @@ public class OrderView extends VerticalLayout {
         VerticalLayout orderInfoSection = new VerticalLayout();
         orderInfoSection.setSpacing(false);
         orderInfoSection.setPadding(false);
-        
-        H4 orderInfoTitle = new H4("📝 Informations de l'ordre");
-        orderInfoTitle.getStyle()
-                .set("margin", "8px 0")
-                .set("color", "var(--lumo-primary-text-color)")
-                .set("border-bottom", "2px solid var(--lumo-primary-color)")
-                .set("padding-bottom", "8px");
 
         FormLayout orderForm = new FormLayout();
         orderForm.setResponsiveSteps(
@@ -474,7 +467,7 @@ public class OrderView extends VerticalLayout {
 
         orderForm.add(patientLayout, doctorSelector);
 
-        orderInfoSection.add(orderInfoTitle, orderForm);
+        orderInfoSection.add( orderForm);
 
         // Section 2: Tableau des examens
         VerticalLayout examsSection = new VerticalLayout();
@@ -484,7 +477,6 @@ public class OrderView extends VerticalLayout {
         H4 examsTitle = new H4("🔬 Examens à réaliser");
         examsTitle.getStyle()
                 .set("margin", "16px 0 8px 0")
-                .set("color", "var(--lumo-primary-text-color)")
                 .set("border-bottom", "2px solid var(--lumo-primary-color)")
                 .set("padding-bottom", "8px");
 
@@ -494,7 +486,17 @@ public class OrderView extends VerticalLayout {
         examsGrid.setMaxHeight("250px");
         examsGrid.getStyle()
                 .set("border", "1px solid var(--lumo-contrast-20pct)")
-                .set("border-radius", "8px");
+                .set("border-radius", "8px")
+                .set("min-height", "200px"); // Assurer une hauteur minimale pour la visibilité
+
+        // Message informatif quand aucun examen n'est ajouté
+        Span emptyMessage = new Span("Aucun examen ajouté. Cliquez sur 'Ajouter un examen' pour commencer.");
+        emptyMessage.getStyle()
+                .set("color", "var(--lumo-secondary-text-color)")
+                .set("font-style", "italic")
+                .set("margin", "8px 0")
+                .set("text-align", "center");
+        emptyMessage.setVisible(tempExams.isEmpty());
 
         examsGrid.addColumn(exam -> exam.getAccessionNumber())
                 .setHeader("N° Accession")
@@ -517,7 +519,7 @@ public class OrderView extends VerticalLayout {
 
         examsGrid.addComponentColumn(exam -> createExamActionButtons(exam, examsGrid, tempExams))
                 .setHeader("Actions")
-                .setWidth("120px")
+                .setWidth("80px")
                 .setFlexGrow(0);
 
         // Initialiser la grille avec les examens temporaires
@@ -584,7 +586,7 @@ public class OrderView extends VerticalLayout {
 
         addExamLayout.add(examCount, addExamBtn);
 
-        examsSection.add(examsTitle, examsGrid, addExamLayout);
+        examsSection.add(examsTitle, emptyMessage, examsGrid, addExamLayout);
 
         // Section 3: Boutons d'action
         HorizontalLayout buttonBar = new HorizontalLayout();
@@ -628,11 +630,6 @@ public class OrderView extends VerticalLayout {
         actions.setSpacing(true);
         actions.setPadding(false);
 
-        Button editBtn = new Button(VaadinIcon.EDIT.create());
-        editBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
-        editBtn.getElement().setProperty("title", "Modifier");
-        editBtn.addClickListener(e -> openExamFormForOrder(selectedOrder, examsGrid, tempExams));
-
         Button deleteBtn = new Button(VaadinIcon.TRASH.create());
         deleteBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
         deleteBtn.getElement().setProperty("title", "Supprimer");
@@ -642,7 +639,7 @@ public class OrderView extends VerticalLayout {
             // Refresh the grid with temporary list
             examsGrid.setItems(tempExams);
             
-            // Find and update the exam count span in the parent layout
+            // Find and update the exam count span and empty message in the parent layout
             examsGrid.getParent().ifPresent(parent -> {
                 if (parent instanceof VerticalLayout) {
                     VerticalLayout layout = (VerticalLayout) parent;
@@ -657,6 +654,10 @@ public class OrderView extends VerticalLayout {
                                     }
                                 }
                             });
+                        } else if (child instanceof Span) {
+                            Span span = (Span) child;
+                            // Update empty message visibility
+                            span.setVisible(tempExams.isEmpty());
                         }
                     });
                 }
@@ -666,7 +667,7 @@ public class OrderView extends VerticalLayout {
                     .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
         });
 
-        actions.add(editBtn, deleteBtn);
+        actions.add(deleteBtn);
         return actions;
     }
 
@@ -759,7 +760,7 @@ public class OrderView extends VerticalLayout {
                 // Refresh grid and update count
                 examsGrid.setItems(tempExams);
                 
-                // Mettre à jour le compteur d'examens
+                // Find and update exam count span and empty message in parent layout
                 examsGrid.getParent().ifPresent(parent -> {
                     if (parent instanceof VerticalLayout) {
                         VerticalLayout layout = (VerticalLayout) parent;
@@ -774,6 +775,10 @@ public class OrderView extends VerticalLayout {
                                         }
                                     }
                                 });
+                            } else if (child instanceof Span) {
+                                Span span = (Span) child;
+                                // Update empty message visibility
+                                span.setVisible(tempExams.isEmpty());
                             }
                         });
                     }
