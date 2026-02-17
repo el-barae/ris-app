@@ -35,7 +35,12 @@ services:
     expose:
       - "80"
     volumes:
+      # Configuration OHIF
       - ./ohif-config.js:/usr/share/nginx/html/app-config.js:ro
+      # SAHTY Personnalisation - Thème Blanc avec Logo
+      - ./sahty-custom-styles.css:/usr/share/nginx/html/sahty-custom-styles.css:ro
+      - ./sahty-init.js:/usr/share/nginx/html/sahty-init.js:ro
+      - ./sahty.jpeg:/usr/share/nginx/html/sahty.jpeg:ro
     restart: unless-stopped
     networks:
       - pacs-network

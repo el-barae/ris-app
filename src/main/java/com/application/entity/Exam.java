@@ -67,6 +67,9 @@ public class Exam {
     @Column(name = "study_instance_uid")
     private String studyInstanceUID;
 
+    @Column(name = "worklist", unique = true, nullable = false)
+    private String worklist;
+
     @OneToOne(mappedBy = "exam", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @EqualsAndHashCode.Exclude
     private Report report;
@@ -86,6 +89,18 @@ public class Exam {
             String random = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
             accessionNumber = "ACC" + timestamp + random;
         }
+        if (studyInstanceUID == null || studyInstanceUID.isEmpty()) {
+            studyInstanceUID = generateStudyInstanceUID();
+        }
+    }
+
+    private String generateStudyInstanceUID() {
+        // Generate a DICOM-compliant Study Instance UID
+        // Based on the format: 1.2.276.0.7230010.3.1.2.346817024.1.1769074535.907746
+        long timestamp = System.currentTimeMillis();
+        String randomPart1 = String.valueOf(100000000L + (long) (Math.random() * 900000000L));
+        String randomPart2 = String.valueOf(100000L + (long) (Math.random() * 900000L));
+        return "1.2.276.0.7230010.3.1.2." + randomPart1 + ".1." + (timestamp / 1000) + "." + randomPart2;
     }
 
     // Méthode utilitaire pour obtenir le code de modalité

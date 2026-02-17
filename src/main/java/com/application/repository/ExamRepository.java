@@ -23,6 +23,9 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure p LEFT JOIN FETCH p.procedureCatalog WHERE e.id = :id")
     Optional<Exam> findByIdWithRelations(Long id);
     
+    @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure p LEFT JOIN FETCH p.procedureCatalog LEFT JOIN FETCH p.procedureSteps WHERE e.id = :id")
+    Optional<Exam> findByIdWithProcedureSteps(Long id);
+    
     @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure p LEFT JOIN FETCH p.procedureCatalog LEFT JOIN FETCH e.modality LEFT JOIN FETCH e.modality.modalityType WHERE e.status = :status")
     List<Exam> findByStatusWithRelations(ExamStatus status);
     
@@ -39,6 +42,8 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     Optional<Exam> findByAccessionNumberWithRelations(String accessionNumber);
 
     Optional<Exam> findByAccessionNumber(String accessionNumber);
+
+    Optional<Exam> findByWorklist(String worklist);
     
     // Nouvelles méthodes pour filtrer par hôpital
     @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure p LEFT JOIN FETCH p.procedureCatalog WHERE e.status = :status AND o.hospital.id = :hospitalId")
@@ -46,4 +51,10 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     
     @Query("SELECT e FROM Exam e LEFT JOIN FETCH e.order o LEFT JOIN FETCH o.patient LEFT JOIN FETCH o.doctor LEFT JOIN FETCH e.report LEFT JOIN FETCH e.procedure p LEFT JOIN FETCH p.procedureCatalog WHERE o.hospital.id = :hospitalId")
     List<Exam> findByHospitalId(@Param("hospitalId") Long hospitalId);
+    
+    @Query("SELECT COUNT(e) FROM Exam e WHERE e.worklist LIKE 'WL-%'")
+    Long countWorklistEntries();
+    
+    @Query("SELECT MAX(e.worklist) FROM Exam e WHERE e.worklist LIKE 'WL-%'")
+    String findMaxWorklist();
 }

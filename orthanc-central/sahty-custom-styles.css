@@ -1,0 +1,285 @@
+/* ===================================================================
+   SAHTY Viewer - Style Minimal
+   Change uniquement le header (logo + titre)
+   Garde tout le reste du style OHIF par défaut
+   =================================================================== */
+
+/* Header SAHTY uniquement - VERSION COMPACTE */
+.sahty-custom-header {
+    background: linear-gradient(135deg, #2a2d35 0%, #33363e 100%) !important; /* Gris au lieu de bleu */
+    border-bottom: 2px solid #2ecc71 !important;
+    padding: 8px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 9999 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+.sahty-custom-header .sahty-logo {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.sahty-custom-header .sahty-logo img {
+    height: 35px !important;
+    width: auto !important;
+    border-radius: 4px !important;
+}
+
+.sahty-custom-header h1 {
+    color: #ffffff !important;
+    font-size: 1.3rem !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+    letter-spacing: 0.3px !important;
+}
+
+.sahty-custom-header .sahty-subtitle {
+    color: #2ecc71 !important;
+    font-size: 0.75rem !important;
+    margin: 0 !important;
+    margin-top: 2px !important;
+}
+
+/* Cacher l'ancien header OHIF pour éviter le doublon */
+[class*="Header-module"]:not(.sahty-custom-header),
+[class*="header-module"]:not(.sahty-custom-header),
+header[class*="Header"]:not(.sahty-custom-header) {
+    display: none !important;
+}
+
+/* ===================================================================
+   TRANSFORMER LE FOND BLEU EN GRIS
+   =================================================================== */
+
+/* Fond principal en gris foncé */
+body,
+html,
+#root,
+[class*="App"],
+[class*="app"],
+main {
+    background-color: #2a2d35 !important; /* Gris foncé au lieu de bleu */
+}
+
+/* Fond des panneaux et cartes en gris */
+[class*="Panel"],
+[class*="panel"],
+[class*="Card"],
+[class*="card"],
+[class*="StudyBrowser"],
+div[class*="bg-"],
+section {
+    background-color: #2a2d35 !important;
+}
+
+/* Tables et listes en gris */
+table,
+tbody,
+thead,
+tr,
+[class*="table"],
+[class*="Table"] {
+    background-color: #2a2d35 !important;
+}
+
+/* Ligne alternée en gris légèrement différent */
+tr:nth-child(even),
+[class*="TableRow"]:nth-child(even) {
+    background-color: #33363e !important;
+}
+
+/* Sidebar en gris */
+[class*="SidePanel"],
+[class*="sidebar"],
+aside {
+    background-color: #23262d !important;
+}
+
+/* Toolbar en gris */
+[class*="Toolbar"],
+[class*="toolbar"] {
+    background-color: #2a2d35 !important;
+}
+
+/* Inputs et selects en gris plus clair */
+input,
+select,
+textarea,
+[class*="input"],
+[class*="Input"] {
+    background-color: #33363e !important;
+    border-color: #45484f !important;
+}
+
+/* Modal/Dialog en gris */
+[class*="Modal"],
+[class*="Dialog"],
+[class*="modal"],
+[class*="dialog"] {
+    background-color: #2a2d35 !important;
+}
+
+/* Dropdown menu en gris */
+[class*="dropdown"],
+[class*="Dropdown"],
+[class*="menu"],
+[class*="Menu"] {
+    background-color: #2a2d35 !important;
+}
+
+/* Notification en gris */
+[role="alert"],
+[class*="notification"],
+[class*="Notification"] {
+    background-color: #33363e !important;
+}
+
+/* Tabs en gris */
+[role="tablist"],
+[class*="Tabs"],
+[class*="tabs"] {
+    background-color: #23262d !important;
+}
+
+/* Viewport garde le noir pur pour les images */
+[class*="Viewport"],
+canvas,
+[class*="cornerstone"] {
+    background-color: #000000 !important;
+}
+
+/* Personnaliser la notification en bas */
+[class*="UserPreferences"] [class*="notification"],
+[class*="notification"],
+[role="alert"],
+div[class*="StudyBrowser"] > div[class*="flex"]:last-child {
+    border-left: 3px solid #2ecc71 !important;
+}
+
+/* Remplacer le texte de la notification */
+[role="alert"] p:first-child::before {
+    content: "SAHTY Viewer - Système d'imagerie médicale professionnel" !important;
+    display: block !important;
+}
+
+[role="alert"] p:first-child {
+    font-size: 0 !important; /* Cache le texte original */
+}
+
+[role="alert"] a {
+    font-size: 0.9rem !important; /* Restaure la taille pour le lien */
+    color: #2ecc71 !important;
+}
+
+[role="alert"] a::before {
+    content: "En savoir plus sur SAHTY Viewer" !important;
+    font-size: 0.9rem !important;
+}
+
+[role="alert"] a:hover {
+    color: #27ae60 !important;
+    text-decoration: underline !important;
+}
+
+/* Icône de la notification en vert */
+[role="alert"] svg {
+    color: #2ecc71 !important;
+}
+
+/* ===================================================================
+   TOUCHES DE VERT SUR LES ÉLÉMENTS IMPORTANTS
+   =================================================================== */
+
+/* Boutons primaires en vert */
+button[class*="primary"]:not([class*="outlined"]),
+button[data-cy*="ok"],
+button[data-cy*="confirm"],
+button[data-cy*="save"],
+button:not([class*="secondary"]):not([class*="text"]):not([class*="icon"]) {
+    background-color: #2ecc71 !important;
+    border-color: #2ecc71 !important;
+}
+
+button[class*="primary"]:hover,
+button[data-cy*="ok"]:hover,
+button[data-cy*="confirm"]:hover {
+    background-color: #27ae60 !important;
+}
+
+/* Bordure verte sur les inputs en focus */
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #2ecc71 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2) !important;
+}
+
+/* Checkbox et radio en vert */
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+    accent-color: #2ecc71 !important;
+}
+
+/* Liens en vert */
+a {
+    color: #2ecc71 !important;
+}
+
+a:hover {
+    color: #27ae60 !important;
+}
+
+/* Switch/Toggle en vert */
+[role="switch"][aria-checked="true"],
+input[type="checkbox"][role="switch"]:checked {
+    background-color: #2ecc71 !important;
+}
+
+/* Progress bar en vert */
+[class*="progress"] [class*="bar"],
+progress {
+    background-color: #2ecc71 !important;
+}
+
+/* Badge/Pills en vert */
+[class*="badge"],
+[class*="pill"] {
+    background-color: #2ecc71 !important;
+}
+
+/* Tabs actifs avec bordure verte */
+[role="tab"][aria-selected="true"],
+[class*="tab"][class*="active"] {
+    border-bottom-color: #2ecc71 !important;
+    color: #2ecc71 !important;
+}
+
+/* Hover sur les lignes de la liste d'études */
+tr:hover,
+[class*="StudyRow"]:hover,
+[class*="TableRow"]:hover {
+    border-left-color: #2ecc71 !important;
+}
+
+/* Scrollbar en vert */
+::-webkit-scrollbar-thumb {
+    background-color: #2ecc71 !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #27ae60 !important;
+}
+
+/* Bordure verte sur les cartes/panneaux importants */
+[class*="Panel"][class*="active"],
+[class*="Card"][class*="selected"] {
+    border-left: 3px solid #2ecc71 !important;
+}
+
+/* C'est tout ! Le reste garde le style OHIF par défaut */

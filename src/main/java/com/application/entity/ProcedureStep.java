@@ -52,6 +52,9 @@ public class ProcedureStep {
     @Column(columnDefinition = "TEXT")
     private String instructions;
 
+    @Column(name = "scheduled_procedure_step_id")
+    private String scheduledProcedureStepId;
+
     @Column(name = "completion_notes", columnDefinition = "TEXT")
     private String completionNotes;
 

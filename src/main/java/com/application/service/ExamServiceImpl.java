@@ -64,6 +64,11 @@ public class ExamServiceImpl implements ExamService {
             exam.setStudyInstanceUID(generateStudyInstanceUID());
         }
 
+        // Génération du worklist si non fourni
+        if (exam.getWorklist() == null || exam.getWorklist().trim().isEmpty()) {
+            exam.setWorklist(generateWorklist());
+        }
+
         // Calcul automatique de la modalité
         calculateModality(exam);
 
@@ -179,6 +184,46 @@ public class ExamServiceImpl implements ExamService {
         String timestamp = String.valueOf(System.currentTimeMillis());
         String randomPart = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         return rootUid + "." + timestamp + "." + randomPart;
+    }
+
+    @Override
+    public String generateWorklist() {
+        // Get the maximum existing worklist number and increment
+        String maxWorklist = examRepository.findMaxWorklist();
+        int nextSequence = 1;
+        
+        if (maxWorklist != null && maxWorklist.startsWith("WL-")) {
+            try {
+                String numberPart = maxWorklist.substring(3); // Remove "WL-"
+                nextSequence = Integer.parseInt(numberPart) + 1;
+            } catch (NumberFormatException e) {
+                // If parsing fails, start from 1
+                nextSequence = 1;
+            }
+        }
+        
+        String worklist = "WL-" + String.format("%03d", nextSequence);
+        
+        // Double-check uniqueness (should be unique with this approach)
+        if (examRepository.findByWorklist(worklist).isPresent()) {
+            // Fallback: use timestamp-based approach
+            long timestamp = System.currentTimeMillis();
+            worklist = "WL-" + String.format("%03d", timestamp % 9999);
+            
+            // Final uniqueness check
+            int attempts = 0;
+            while (examRepository.findByWorklist(worklist).isPresent() && attempts < 100) {
+                timestamp++;
+                worklist = "WL-" + String.format("%03d", timestamp % 9999);
+                attempts++;
+            }
+            
+            if (attempts >= 100) {
+                throw new RuntimeException("Failed to generate unique worklist after 100 attempts");
+            }
+        }
+        
+        return worklist;
     }
 
     private void validateExamData(Exam exam) {

@@ -8,7 +8,9 @@ import com.application.repository.ProcedureCatalogRepository;
 import com.application.repository.ProcedureRepository;
 import com.application.repository.UserRepository;
 import com.application.repository.HospitalRepository;
+import com.application.views.dialog.PatientDialog;
 import com.application.util.DicomUidGenerator;
+import com.application.service.ExamService;
 import com.application.security.SecurityUtils;
 import com.application.security.CustomUserDetails;
 import org.springframework.security.core.Authentication;
@@ -60,6 +62,7 @@ public class OrderView extends VerticalLayout {
     private final HospitalRepository hospitalRepository;
     private final ProcedureCatalogRepository procedureCatalogRepository;
     private final ProcedureRepository procedureRepository;
+    private final ExamService examService;
 
     // Composants UI - Recherche et filtres
     private TextField orderSearchField = new TextField();
@@ -78,7 +81,7 @@ public class OrderView extends VerticalLayout {
     public OrderView(OrderRepository orderRepository, ExamRepository examRepository, 
                      PatientRepository patientRepository, UserRepository userRepository,
                      HospitalRepository hospitalRepository, ProcedureCatalogRepository procedureCatalogRepository,
-                     ProcedureRepository procedureRepository) {
+                     ProcedureRepository procedureRepository, ExamService examService) {
         this.orderRepository = orderRepository;
         this.examRepository = examRepository;
         this.patientRepository = patientRepository;
@@ -86,6 +89,7 @@ public class OrderView extends VerticalLayout {
         this.hospitalRepository = hospitalRepository;
         this.procedureCatalogRepository = procedureCatalogRepository;
         this.procedureRepository = procedureRepository;
+        this.examService = examService;
 
         setSizeFull();
         setPadding(false);
@@ -410,12 +414,12 @@ public class OrderView extends VerticalLayout {
                 new FormLayout.ResponsiveStep("600px", 2)
         );
 
-        // Sélection patient
+        // Sélection patient avec bouton d'ajout
         ComboBox<Patient> patientSelector = new ComboBox<>("Patient *");
         patientSelector.setItems(patientRepository.findAll());
         patientSelector.setItemLabelGenerator(patient -> 
                 patient.getLastName() + " " + patient.getFirstName() + " (" + patient.getPatientId() + ")");
-        patientSelector.setPlaceholder("🔍 Rechercher un patient...");
+        patientSelector.setPlaceholder(" Rechercher un patient...");
         patientSelector.setWidthFull();
         patientSelector.setRequired(true);
         patientSelector.setClearButtonVisible(true);
@@ -423,13 +427,27 @@ public class OrderView extends VerticalLayout {
             patientSelector.setValue(order.getPatient());
         }
 
+        // Bouton pour ajouter un nouveau patient
+        Button addPatientBtn = new Button("Ajouter un patient", VaadinIcon.PLUS.create());
+        addPatientBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
+        addPatientBtn.getElement().setProperty("title", "Créer un nouveau patient");
+        addPatientBtn.addClickListener(e -> openPatientDialog(patientSelector));
+
+        // Layout horizontal pour le patient et le bouton d'ajout
+        HorizontalLayout patientLayout = new HorizontalLayout();
+        patientLayout.setWidthFull();
+        patientLayout.setSpacing(true);
+        patientLayout.setAlignItems(Alignment.END);
+        patientLayout.setFlexGrow(1, patientSelector);
+        patientLayout.add(patientSelector, addPatientBtn);
+
         // Sélection médecin
         ComboBox<User> doctorSelector = new ComboBox<>("Médecin prescripteur *");
         doctorSelector.setItems(userRepository.findAll().stream()
                 .filter(user -> user.getRole() == UserRole.MEDECIN)
                 .toList());
         doctorSelector.setItemLabelGenerator(user -> "👨‍⚕️ Dr. " + user.getFirstName() + " " + user.getLastName());
-        doctorSelector.setPlaceholder("🔍 Rechercher un médecin...");
+        doctorSelector.setPlaceholder(" Rechercher un médecin...");
         doctorSelector.setWidthFull();
         doctorSelector.setRequired(true);
         doctorSelector.setClearButtonVisible(true);
@@ -454,7 +472,7 @@ public class OrderView extends VerticalLayout {
             hospitalSelector.setValue(order.getHospital());
         }
 
-        orderForm.add(patientSelector, doctorSelector);
+        orderForm.add(patientLayout, doctorSelector);
 
         orderInfoSection.add(orderInfoTitle, orderForm);
 
@@ -524,7 +542,7 @@ public class OrderView extends VerticalLayout {
                 .set("font-weight", "600")
                 .set("color", "var(--lumo-secondary-text-color)");
 
-        Button addExamBtn = new Button("➕ Ajouter un examen", VaadinIcon.PLUS.create());
+        Button addExamBtn = new Button("Ajouter un examen", VaadinIcon.PLUS.create());
         addExamBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         addExamBtn.addClickListener(e -> {
             // Vérifier que les informations de base sont remplies
@@ -579,7 +597,7 @@ public class OrderView extends VerticalLayout {
                 .set("margin-top", "16px")
                 .set("padding-top", "16px");
 
-        Button saveButton = new Button("💾 Enregistrer l'ordre", VaadinIcon.CHECK.create());
+        Button saveButton = new Button("Enregistrer l'ordre", VaadinIcon.CHECK.create());
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         saveButton.getStyle()
                 .set("font-weight", "600")
@@ -592,7 +610,7 @@ public class OrderView extends VerticalLayout {
             }
         });
 
-        Button cancelButton = new Button("❌ Annuler", VaadinIcon.CLOSE.create());
+        Button cancelButton = new Button(" Annuler", VaadinIcon.CLOSE.create());
         cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         cancelButton.addClickListener(e -> dialog.close());
 
@@ -694,7 +712,7 @@ public class OrderView extends VerticalLayout {
 
         formLayout.add(procedureSelector, prioritySelector, instructions);
 
-        Button saveButton = new Button("✅ Ajouter l'examen", VaadinIcon.CHECK.create());
+        Button saveButton = new Button("Ajouter l'examen", VaadinIcon.CHECK.create());
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveButton.addClickListener(e -> {
             if (procedureSelector.getValue() != null) {
@@ -724,7 +742,7 @@ public class OrderView extends VerticalLayout {
                 newExam.setAdditionalInstructions(instructions.getValue());
                 newExam.setAccessionNumber(DicomUidGenerator.generateAccessionNumber());
                 newExam.setStudyInstanceUID(DicomUidGenerator.generateSOPInstanceUID());
-                newExam.setScheduledDateTime(java.time.LocalDateTime.now());
+                newExam.setScheduledDateTime(java.time.LocalDateTime.now().plusHours(1));
                 newExam.setStatus(ExamStatus.CREATED);
                 
                 // Handle case where order is null (new order being created)
@@ -841,14 +859,14 @@ public class OrderView extends VerticalLayout {
                     // Patient and medecin are automatically set via the order
                     exam.setAccessionNumber(DicomUidGenerator.generateAccessionNumber());
                     exam.setStudyInstanceUID(DicomUidGenerator.generateSOPInstanceUID());
-                    exam.setScheduledDateTime(java.time.LocalDateTime.now());
+                    exam.setScheduledDateTime(java.time.LocalDateTime.now().plusHours(1));
                     exam.setStatus(ExamStatus.CREATED);
                     // Keep the priority that was set in the form
                     if (exam.getPriority() == null) {
                         exam.setPriority(Priority.NORMAL);
                     }
                     
-                    examRepository.save(exam);
+                    examService.createExam(exam);
                     order.addExam(exam);
                 }
                 // Save order again to update the relationship
@@ -1036,12 +1054,12 @@ public class OrderView extends VerticalLayout {
         exam.setAdditionalInstructions(instructions);
         exam.setAccessionNumber("ACC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         exam.setStudyInstanceUID(order.getStudyInstanceUID() + "." + UUID.randomUUID().toString().substring(0, 8));
-        exam.setScheduledDateTime(LocalDateTime.now());
+        exam.setScheduledDateTime(LocalDateTime.now().plusHours(1));
         exam.setStatus(ExamStatus.CREATED);
         exam.setPriority(Priority.NORMAL);
 
         try {
-            examRepository.save(exam);
+            examService.createExam(exam);
             order.addExam(exam);
             orderRepository.save(order);
             
@@ -1314,5 +1332,29 @@ public class OrderView extends VerticalLayout {
     private void updateOrderCount() {
         int count = orderGrid.getListDataView().getItemCount();
         orderCountBadge.setText(count + " ordre" + (count > 1 ? "s" : ""));
+    }
+
+    // ==================== GESTION DES PATIENTS ====================
+
+    @Transactional
+    private void openPatientDialog(ComboBox<Patient> patientSelector) {
+        PatientDialog dialog = new PatientDialog(null, patient -> {
+            // Sauvegarder le nouveau patient dans la base de données
+            Patient savedPatient = patientRepository.save(patient);
+            
+            // Rafraîchir la liste des patients dans le ComboBox
+            patientSelector.setItems(patientRepository.findAll());
+            
+            // Sélectionner automatiquement le nouveau patient créé
+            patientSelector.setValue(savedPatient);
+            
+            // Afficher une notification de succès
+            Notification.show("✅ Patient créé avec succès: " + 
+                    savedPatient.getLastName() + " " + savedPatient.getFirstName(), 
+                    3000, Notification.Position.BOTTOM_START)
+                    .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        });
+        
+        dialog.open();
     }
 }

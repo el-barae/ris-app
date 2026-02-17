@@ -31,4 +31,6 @@ public interface ExamService {
     String generateAccessionNumber();
 
     String generateStudyInstanceUID();
+
+    String generateWorklist();
 }

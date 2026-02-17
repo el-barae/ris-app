@@ -6,13 +6,13 @@ import com.application.entity.Priority;
 import com.application.entity.Procedure;
 import com.application.entity.ProcedureCatalog;
 import com.application.entity.ModalityType;
-import com.application.entity.User;
-import com.application.entity.Hospital;
 import com.application.repository.ExamRepository;
 import com.application.repository.ProcedureRepository;
 import com.application.repository.ProcedureCatalogRepository;
+import com.application.repository.ProcedureStepRepository;
 import com.application.repository.ModalityTypeRepository;
 import com.application.service.OrthancWorklistService;
+import com.application.views.SubViews.ProcedureStepsManager;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -34,6 +34,9 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.Page;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -54,6 +57,8 @@ public class WorklistDragDropView extends VerticalLayout {
     private final ProcedureCatalogRepository procedureCatalogRepo;
     private final ProcedureRepository procedureRepo;
     private final ModalityTypeRepository modalityRepo;
+    private final ProcedureStepRepository procedureStepRepo;
+    private final ProcedureStepsManager procedureStepsManager;
     
     private final Grid<Exam> rightGrid = new Grid<>(Exam.class);
     private final VerticalLayout leftCardsContainer = new VerticalLayout();
@@ -69,12 +74,14 @@ public class WorklistDragDropView extends VerticalLayout {
 
     public WorklistDragDropView(ExamRepository examRepo, OrthancWorklistService orthancWorklistService, 
                                 ProcedureCatalogRepository procedureCatalogRepo, ProcedureRepository procedureRepo, 
-                                ModalityTypeRepository modalityRepo) {
+                                ModalityTypeRepository modalityRepo, ProcedureStepRepository procedureStepRepo) {
         this.examRepo = examRepo;
         this.orthancWorklistService = orthancWorklistService;
         this.procedureCatalogRepo = procedureCatalogRepo;
         this.procedureRepo = procedureRepo;
         this.modalityRepo = modalityRepo;
+        this.procedureStepRepo = procedureStepRepo;
+        this.procedureStepsManager = new ProcedureStepsManager(procedureStepRepo);
         this.plannedCount = new Span();
         this.inProgressCount = new Span();
         this.plannedCount.setText("0");
@@ -733,11 +740,15 @@ public class WorklistDragDropView extends VerticalLayout {
     private void openEditExamDialog(Exam exam) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Modifier l'examen");
-        dialog.setWidth("600px");
+        dialog.setWidth("800px");
+        dialog.setModal(true);
+        dialog.setDraggable(true);
+        dialog.setResizable(true);
 
         VerticalLayout content = new VerticalLayout();
         content.setPadding(true);
         content.setSpacing(true);
+        content.setSizeFull();
 
         // Patient information (read-only)
         TextField patientField = new TextField("Patient");
@@ -778,8 +789,9 @@ public class WorklistDragDropView extends VerticalLayout {
         });
 
         // Set current procedure if exists
+        ProcedureCatalog currentProcedureCatalog = null;
         if (exam.getProcedure() != null && exam.getProcedure().getProcedureCatalog() != null) {
-            procedureCombo.setValue(exam.getProcedure().getProcedureCatalog());
+            currentProcedureCatalog = exam.getProcedure().getProcedureCatalog();
             // Also set the modality
             if (exam.getProcedure().getModalityType() != null) {
                 modalityCombo.setValue(exam.getProcedure().getModalityType());
@@ -791,7 +803,88 @@ public class WorklistDragDropView extends VerticalLayout {
             procedureCombo.setItems(procedureCatalogRepo.findByModalityTypeAndIsActive(modalityCombo.getValue(), true));
         }
 
-        content.add(patientField, modalityCombo, procedureCombo);
+        // Set the current procedure value AFTER loading items
+        if (currentProcedureCatalog != null) {
+            // Si la modalité n'est pas encore définie, la définir d'abord
+            if (modalityCombo.getValue() == null && currentProcedureCatalog.getModalityType() != null) {
+                modalityCombo.setValue(currentProcedureCatalog.getModalityType());
+                // Charger les procédures pour cette modalité
+                procedureCombo.setItems(procedureCatalogRepo.findByModalityTypeAndIsActive(currentProcedureCatalog.getModalityType(), true));
+            }
+            // Maintenant on peut définir la valeur de la procédure
+            procedureCombo.setValue(currentProcedureCatalog);
+        }
+
+        // Formulaire d'édition de la Procedure
+        VerticalLayout procedureForm = new VerticalLayout();
+        procedureForm.setWidthFull();
+        procedureForm.setSpacing(true);
+        procedureForm.setVisible(false); // Masqué par défaut
+        
+        // Champ Nom de la procédure
+        TextField procedureNameField = new TextField("Nom de la procédure");
+        procedureNameField.setWidthFull();
+        
+        // Champ Description
+        TextArea descriptionField = new TextArea("Description");
+        descriptionField.setWidthFull();
+        descriptionField.setHeight("100px");
+        
+        // Champ Région
+        TextField regionField = new TextField("Région");
+        regionField.setWidthFull();
+        
+        // Champ Latéralité
+        ComboBox<String> lateralityCombo = new ComboBox<>("Latéralité");
+        lateralityCombo.setWidthFull();
+        lateralityCombo.setItems("Gauche", "Droit", "Bilatéral", "Non applicable");
+        
+        // Champ Contraste requis
+        Checkbox contrastRequiredField = new Checkbox("Contraste requis");
+        
+        // Champ Type de contraste
+        TextField contrastTypeField = new TextField("Type de contraste");
+        contrastTypeField.setWidthFull();
+        
+        // Champ Durée programmée
+        IntegerField durationField = new IntegerField("Durée programmée (minutes)");
+        durationField.setWidthFull();
+        
+        // Champ Instructions spéciales
+        TextArea specialInstructionsField = new TextArea("Instructions spéciales");
+        specialInstructionsField.setWidthFull();
+        specialInstructionsField.setHeight("80px");
+        
+        // Ajouter les champs au formulaire
+        procedureForm.add(
+            procedureNameField, descriptionField, regionField, lateralityCombo,
+            contrastRequiredField, contrastTypeField, durationField, specialInstructionsField
+        );
+        
+        // Si l'examen a déjà une procédure, charger et afficher le formulaire
+        if (exam.getProcedure() != null) {
+            Procedure existingProcedure = exam.getProcedure();
+            procedureForm.setVisible(true);
+            
+            // Remplir les champs avec les valeurs existantes
+            procedureNameField.setValue(existingProcedure.getName() != null ? existingProcedure.getName() : "");
+            descriptionField.setValue(existingProcedure.getDescription() != null ? existingProcedure.getDescription() : "");
+            regionField.setValue(existingProcedure.getRegion() != null ? existingProcedure.getRegion() : "");
+            lateralityCombo.setValue(existingProcedure.getLaterality());
+            contrastRequiredField.setValue(existingProcedure.getContrastRequired() != null ? existingProcedure.getContrastRequired() : false);
+            contrastTypeField.setValue(existingProcedure.getContrastType() != null ? existingProcedure.getContrastType() : "");
+            durationField.setValue(existingProcedure.getScheduledDurationMinutes());
+            specialInstructionsField.setValue(existingProcedure.getSpecialInstructions() != null ? existingProcedure.getSpecialInstructions() : "");
+        }
+
+        // Section pour les étapes de procédure
+        VerticalLayout stepsSection = new VerticalLayout();
+        stepsSection.setWidthFull();
+        stepsSection.setSpacing(true);
+        stepsSection.setVisible(false); // Masqué par défaut
+        
+        // Ajouter les champs de base
+        content.add(patientField, modalityCombo, procedureCombo, procedureForm, stepsSection);
         dialog.add(content);
 
         // Buttons
@@ -807,9 +900,13 @@ public class WorklistDragDropView extends VerticalLayout {
             // Update exam
             exam.setModalityType(selectedModality);
             
-            // Create a new Procedure from the selected ProcedureCatalog
-            if (selectedProcedure != null) {
-                Procedure procedure = new Procedure();
+            // Handle Procedure - update existing or create new
+            Procedure procedure = exam.getProcedure();
+            boolean isNewProcedure = false;
+            
+            if (procedure == null && selectedProcedure != null) {
+                // Create new procedure from catalog
+                procedure = new Procedure();
                 procedure.setName(selectedProcedure.getName());
                 procedure.setProcedureCode(selectedProcedure.getProcedureCode());
                 procedure.setModalityType(selectedProcedure.getModalityType());
@@ -822,11 +919,42 @@ public class WorklistDragDropView extends VerticalLayout {
                 procedure.setDescription(selectedProcedure.getDescription());
                 procedure.setSpecialInstructions(selectedProcedure.getAdditionalInstructions());
                 procedure.setIsActive(true);
-                procedure.setScheduledDurationMinutes(30); // Valeur par défaut
+                procedure.setScheduledDurationMinutes(30);
+                procedure.setProcedureCatalog(selectedProcedure);
+                isNewProcedure = true;
+            } else if (procedure != null) {
+                // Update existing procedure with form values
+                procedure.setName(procedureNameField.getValue());
+                procedure.setDescription(descriptionField.getValue());
+                procedure.setRegion(regionField.getValue());
+                procedure.setLaterality(lateralityCombo.getValue());
+                procedure.setContrastRequired(contrastRequiredField.getValue());
+                procedure.setContrastType(contrastTypeField.getValue());
+                procedure.setScheduledDurationMinutes(durationField.getValue());
+                procedure.setSpecialInstructions(specialInstructionsField.getValue());
+                procedure.setModalityType(selectedModality);
                 
+                // Update procedure catalog if changed
+                if (selectedProcedure != null) {
+                    procedure.setProcedureCatalog(selectedProcedure);
+                }
+            }
+            
+            if (procedure != null) {
                 // Save the procedure
                 procedure = procedureRepo.save(procedure);
                 exam.setProcedure(procedure);
+                
+                // Afficher la section des étapes et ajouter le gestionnaire
+                stepsSection.setVisible(true);
+                stepsSection.removeAll();
+                stepsSection.add(procedureStepsManager.createProcedureStepsEditor(procedure, dialog));
+                
+                // Si c'est une nouvelle procédure, ne pas fermer la dialog tout de suite
+                if (isNewProcedure) {
+                    Notification.show("Procédure créée. Vous pouvez maintenant ajouter des étapes.", 3000, Notification.Position.BOTTOM_END);
+                    return; // Ne pas fermer la dialog immédiatement
+                }
             }
             
             examRepo.save(exam);
@@ -843,6 +971,12 @@ public class WorklistDragDropView extends VerticalLayout {
         HorizontalLayout buttons = new HorizontalLayout(saveBtn, cancelBtn);
         buttons.setSpacing(true);
         dialog.getFooter().add(buttons);
+
+        // Si l'examen a déjà une procédure, afficher les étapes
+        if (exam.getProcedure() != null) {
+            stepsSection.setVisible(true);
+            stepsSection.add(procedureStepsManager.createProcedureStepsEditor(exam.getProcedure(), dialog));
+        }
 
         dialog.open();
     }

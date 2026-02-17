@@ -3,7 +3,9 @@ package com.application.dicom;
 import com.application.entity.Exam;
 import com.application.entity.ExamStatus;
 import com.application.entity.ExamStatusMessage;
+import com.application.entity.ProcedureStep;
 import com.application.repository.ExamRepository;
+import com.application.repository.ProcedureStepRepository;
 import com.application.service.ExamStatusWebSocketService;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.Tag;
@@ -18,13 +20,16 @@ import java.io.IOException;
 public class MppsScp extends BasicMPPSSCP {
 
     private final ExamRepository examRepo;
+    private final ProcedureStepRepository procedureStepRepo;
 //    private final ExamStatusNotificationService notificationService;
     private final ExamStatusWebSocketService webSocketService;
 
     public MppsScp(ExamRepository repo,
+                   ProcedureStepRepository procedureStepRepo,
 //                   ExamStatusNotificationService notificationService,
                    ExamStatusWebSocketService webSocketService) {
         this.examRepo = repo;
+        this.procedureStepRepo = procedureStepRepo;
 //        this.notificationService = notificationService;
         this.webSocketService = webSocketService;
     }
@@ -39,18 +44,26 @@ public class MppsScp extends BasicMPPSSCP {
             return;
         }
 
-        System.out.println("🔔 [MPPS] Message reçu : " + dimse);
+        System.out.println(" [MPPS] Message reçu : " + dimse);
 
         // 1. Récupérer les données
         String accessionNumber = null;
+        String scheduledProcedureStepId = null;
         String status = null;
 
         if (data != null) {
             accessionNumber = data.getString(Tag.AccessionNumber);
             status = data.getString(Tag.PerformedProcedureStepStatus);
+            
+            // Récupérer le ScheduledProcedureStepID depuis la séquence
+            Attributes scheduledStepSequence = data.getNestedDataset(Tag.ScheduledStepAttributesSequence);
+            if (scheduledStepSequence != null) {
+                scheduledProcedureStepId = scheduledStepSequence.getString(Tag.ScheduledProcedureStepID);
+            }
         }
 
         System.out.println("   -> Accession : " + accessionNumber);
+        System.out.println("   -> SPS ID : " + scheduledProcedureStepId);
         System.out.println("   -> Nouveau Statut : " + status);
 
         if (accessionNumber != null && !accessionNumber.isEmpty()) {
@@ -59,50 +72,103 @@ public class MppsScp extends BasicMPPSSCP {
                 Exam exam = examRepo.findByAccessionNumberWithRelations(accessionNumber).orElse(null);
 
                 if (exam != null) {
-                    ExamStatus oldStatus = exam.getStatus();
-                    ExamStatus newStatus = null;
+                    ExamStatus oldExamStatus = exam.getStatus();
+                    ExamStatus newExamStatus = null;
                     String statusMessage = "";
+                    boolean examStatusChanged = false;
 
-                    // 3. Déterminer le nouveau statut
-                    if ("IN PROGRESS".equalsIgnoreCase(status) && oldStatus != ExamStatus.IN_PROGRESS) {
-                        newStatus = ExamStatus.IN_PROGRESS;
-                        statusMessage = "L'examen est en cours d'acquisition";
-                    } else if ("COMPLETED".equalsIgnoreCase(status) && oldStatus != ExamStatus.COMPLETED) {
-                        newStatus = ExamStatus.COMPLETED;
-                        statusMessage = "L'examen est terminé";
-                    } else if ("DISCONTINUED".equalsIgnoreCase(status) && oldStatus != ExamStatus.CANCELLED) {
-                        newStatus = ExamStatus.CANCELLED;
-                        statusMessage = "L'examen a été annulé";
+                    // 3. Gérer le SPS individuel si on a l'ID
+                    if (scheduledProcedureStepId != null && !scheduledProcedureStepId.isEmpty()) {
+                        ProcedureStep procedureStep = procedureStepRepo.findByScheduledProcedureStepId(scheduledProcedureStepId);
+                        
+                        if (procedureStep != null) {
+                            boolean stepChanged = false;
+                            
+                            if ("IN PROGRESS".equalsIgnoreCase(status)) {
+                                // Le SPS est en cours - pas de changement de statut pour le moment
+                                System.out.println("   SPS " + scheduledProcedureStepId + " en cours");
+                            } else if ("COMPLETED".equalsIgnoreCase(status) && !Boolean.TRUE.equals(procedureStep.getIsCompleted())) {
+                                // Marquer le SPS comme complété
+                                procedureStep.markAsCompleted("MPPS COMPLETED received");
+                                procedureStepRepo.save(procedureStep);
+                                stepChanged = true;
+                                System.out.println("   SPS " + scheduledProcedureStepId + " marqué comme complété");
+                                
+                                // Vérifier si TOUS les SPS requis sont complétés
+                                if (exam.getProcedure() != null) {
+                                    long requiredCount = procedureStepRepo.countRequiredStepsByProcedureId(exam.getProcedure().getId());
+                                    long completedCount = procedureStepRepo.countCompletedStepsByProcedureId(exam.getProcedure().getId());
+                                    
+                                    System.out.println("   Progression: " + completedCount + "/" + requiredCount + " SPS requis complétés");
+                                    
+                                    if (completedCount >= requiredCount && oldExamStatus != ExamStatus.COMPLETED) {
+                                        newExamStatus = ExamStatus.COMPLETED;
+                                        statusMessage = "Tous les steps sont terminés - Examen complété";
+                                        examStatusChanged = true;
+                                        System.out.println("   TOUS les SPS sont complétés -> Examen marqué COMPLETED");
+                                    } else if (oldExamStatus == ExamStatus.PLANNED) {
+                                        newExamStatus = ExamStatus.IN_PROGRESS;
+                                        statusMessage = "Examen en cours (certains steps complétés)";
+                                        examStatusChanged = true;
+                                        System.out.println("   Premier SPS complété -> Examen marqué IN_PROGRESS");
+                                    }
+                                }
+                            } else if ("DISCONTINUED".equalsIgnoreCase(status)) {
+                                // Gérer l'annulation du SPS
+                                procedureStep.markAsIncomplete();
+                                procedureStepRepo.save(procedureStep);
+                                stepChanged = true;
+                                System.out.println("   SPS " + scheduledProcedureStepId + " annulé");
+                            }
+                            
+                            // Envoyer une notification pour le SPS si changé
+                            if (stepChanged) {
+                                // TODO: Optionnel - envoyer notification spécifique au SPS
+                            }
+                        } else {
+                            System.err.println("   SPS introuvable pour ID: " + scheduledProcedureStepId);
+                        }
+                    } else {
+                        // Ancienne logique si pas de SPS ID (compatibilité)
+                        if ("IN PROGRESS".equalsIgnoreCase(status) && oldExamStatus != ExamStatus.IN_PROGRESS) {
+                            newExamStatus = ExamStatus.IN_PROGRESS;
+                            statusMessage = "L'examen est en cours d'acquisition";
+                            examStatusChanged = true;
+                        } else if ("COMPLETED".equalsIgnoreCase(status) && oldExamStatus != ExamStatus.COMPLETED) {
+                            newExamStatus = ExamStatus.COMPLETED;
+                            statusMessage = "L'examen est terminé";
+                            examStatusChanged = true;
+                        } else if ("DISCONTINUED".equalsIgnoreCase(status) && oldExamStatus != ExamStatus.CANCELLED) {
+                            newExamStatus = ExamStatus.CANCELLED;
+                            statusMessage = "L'examen a été annulé";
+                            examStatusChanged = true;
+                        }
                     }
 
-                    // 4. ENVOYER LE MESSAGE WEBSOCKET SEULEMENT UNE FOIS
-                    if (newStatus != null) {
+                    // 4. ENVOYER LE MESSAGE WEBSOCKET si le statut de l'examen a changé
+                    if (examStatusChanged && newExamStatus != null) {
                         ExamStatusMessage wsMessage = new ExamStatusMessage(
                                 exam.getAccessionNumber(),
                                 exam.getPatient().getFirstName() + " " + exam.getPatient().getLastName(),
                                 exam.getModalityCode() != null ? exam.getModalityCode() : "UNKNOWN",
-                                oldStatus.toString(),
-                                newStatus.toString(),
+                                oldExamStatus.toString(),
+                                newExamStatus.toString(),
                                 statusMessage
                         );
 
-                        // Utiliser UNIQUEMENT webSocketService
                         webSocketService.sendStatusUpdate(wsMessage);
                         System.out.println("   Message WebSocket envoyé");
 
-                        // COMMENTEZ OU SUPPRIMEZ cette ligne
-                        // notificationService.notifyExamStatusUpdate(exam, oldStatus, newStatus);
-
-                        // 6. Mettre à jour le statut dans la base
-                        exam.setStatus(newStatus);
+                        // 5. Mettre à jour le statut de l'examen dans la base
+                        exam.setStatus(newExamStatus);
                         examRepo.save(exam);
-                        System.out.println("   💾 Examen sauvegardé avec le statut: " + newStatus);
+                        System.out.println("   Examen sauvegardé avec le statut: " + newExamStatus);
                     }
                 } else {
-                    System.err.println("   ❌ Examen introuvable pour Accession: " + accessionNumber);
+                    System.err.println("   Examen introuvable pour Accession: " + accessionNumber);
                 }
             } catch (Exception e) {
-                System.err.println("   ⚠️  Erreur lors du traitement MPPS : " + e.getMessage());
+                System.err.println("   Erreur lors du traitement MPPS : " + e.getMessage());
                 e.printStackTrace();
             }
         }

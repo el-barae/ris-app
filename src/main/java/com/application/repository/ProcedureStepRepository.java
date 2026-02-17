@@ -25,4 +25,6 @@ public interface ProcedureStepRepository extends JpaRepository<ProcedureStep, Lo
 
     @Query("SELECT COUNT(ps) FROM ProcedureStep ps WHERE ps.procedure.id = :procedureId AND ps.isRequired = true")
     long countRequiredStepsByProcedureId(@Param("procedureId") Long procedureId);
+
+    ProcedureStep findByScheduledProcedureStepId(String scheduledProcedureStepId);
 }

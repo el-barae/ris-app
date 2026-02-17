@@ -81,10 +81,10 @@ public class Procedure {
     @Column(name = "actual_duration_minutes")
     private Integer actualDurationMinutes;
 
-    // Relation OneToOne avec Exam
-    @OneToOne(fetch = FetchType.LAZY, mappedBy = "procedure")
+    // Relation OneToMany avec Exam
+    @OneToMany(mappedBy = "procedure", cascade = CascadeType.ALL)
     @EqualsAndHashCode.Exclude
-    private Exam exam;
+    private List<Exam> exams = new ArrayList<>();
 
     // Relation OneToOne avec ProcedureCatalog (template)
     @OneToOne(fetch = FetchType.LAZY)
@@ -130,6 +130,21 @@ public class Procedure {
         if (procedureSteps.contains(step)) {
             procedureSteps.remove(step);
             step.setProcedure(null);
+        }
+    }
+
+    // Helper methods for managing exams
+    public void addExam(Exam exam) {
+        if (!exams.contains(exam)) {
+            exams.add(exam);
+            exam.setProcedure(this);
+        }
+    }
+
+    public void removeExam(Exam exam) {
+        if (exams.contains(exam)) {
+            exams.remove(exam);
+            exam.setProcedure(null);
         }
     }
 
