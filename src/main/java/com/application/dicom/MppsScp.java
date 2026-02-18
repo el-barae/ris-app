@@ -8,6 +8,7 @@ import com.application.repository.ExamRepository;
 import com.application.repository.ProcedureStepRepository;
 import com.application.service.ExamStatusWebSocketService;
 import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Sequence;
 import org.dcm4che3.data.Tag;
 import org.dcm4che3.net.*;
 import org.dcm4che3.net.pdu.PresentationContext;
@@ -21,16 +22,13 @@ public class MppsScp extends BasicMPPSSCP {
 
     private final ExamRepository examRepo;
     private final ProcedureStepRepository procedureStepRepo;
-//    private final ExamStatusNotificationService notificationService;
     private final ExamStatusWebSocketService webSocketService;
 
     public MppsScp(ExamRepository repo,
                    ProcedureStepRepository procedureStepRepo,
-//                   ExamStatusNotificationService notificationService,
                    ExamStatusWebSocketService webSocketService) {
         this.examRepo = repo;
         this.procedureStepRepo = procedureStepRepo;
-//        this.notificationService = notificationService;
         this.webSocketService = webSocketService;
     }
 
@@ -38,149 +36,289 @@ public class MppsScp extends BasicMPPSSCP {
     public void onDimseRQ(Association as, PresentationContext pc, Dimse dimse,
                           Attributes cmd, Attributes data) throws IOException {
 
-        // Vérifier si c'est bien du MPPS (N-CREATE ou N-SET)
         if (dimse != Dimse.N_CREATE_RQ && dimse != Dimse.N_SET_RQ) {
             super.onDimseRQ(as, pc, dimse, cmd, data);
             return;
         }
 
-        System.out.println(" [MPPS] Message reçu : " + dimse);
+        System.out.println("[MPPS] Message reçu : " + dimse);
 
-        // 1. Récupérer les données
         String accessionNumber = null;
-        String scheduledProcedureStepId = null;
-        String status = null;
+        String receivedSpsId   = null;
+        String mppsStatus      = null;
 
         if (data != null) {
             accessionNumber = data.getString(Tag.AccessionNumber);
-            status = data.getString(Tag.PerformedProcedureStepStatus);
-            
-            // Récupérer le ScheduledProcedureStepID depuis la séquence
-            Attributes scheduledStepSequence = data.getNestedDataset(Tag.ScheduledStepAttributesSequence);
-            if (scheduledStepSequence != null) {
-                scheduledProcedureStepId = scheduledStepSequence.getString(Tag.ScheduledProcedureStepID);
+            mppsStatus      = data.getString(Tag.PerformedProcedureStepStatus);
+
+            Sequence seq = data.getSequence(Tag.ScheduledStepAttributesSequence);
+            if (seq != null && !seq.isEmpty()) {
+                Attributes first = seq.get(0);
+                if (first != null) {
+                    receivedSpsId = first.getString(Tag.ScheduledProcedureStepID);
+                }
+            }
+            if (receivedSpsId == null) {
+                receivedSpsId = data.getString(Tag.ScheduledProcedureStepID);
             }
         }
 
         System.out.println("   -> Accession : " + accessionNumber);
-        System.out.println("   -> SPS ID : " + scheduledProcedureStepId);
-        System.out.println("   -> Nouveau Statut : " + status);
+        System.out.println("   -> SPS ID    : " + receivedSpsId);
+        System.out.println("   -> Statut    : " + mppsStatus);
 
-        if (accessionNumber != null && !accessionNumber.isEmpty()) {
-            try {
-                // 2. Trouver l'examen en base
-                Exam exam = examRepo.findByAccessionNumberWithRelations(accessionNumber).orElse(null);
+        if (accessionNumber == null || accessionNumber.isEmpty()) {
+            replySuccess(as, pc, dimse, cmd);
+            return;
+        }
 
-                if (exam != null) {
-                    ExamStatus oldExamStatus = exam.getStatus();
-                    ExamStatus newExamStatus = null;
-                    String statusMessage = "";
-                    boolean examStatusChanged = false;
+        try {
+            Exam exam = examRepo.findByAccessionNumberWithRelations(accessionNumber).orElse(null);
+            if (exam == null) {
+                System.err.println("   -> Examen introuvable : " + accessionNumber);
+                replySuccess(as, pc, dimse, cmd);
+                return;
+            }
 
-                    // 3. Gérer le SPS individuel si on a l'ID
-                    if (scheduledProcedureStepId != null && !scheduledProcedureStepId.isEmpty()) {
-                        ProcedureStep procedureStep = procedureStepRepo.findByScheduledProcedureStepId(scheduledProcedureStepId);
-                        
-                        if (procedureStep != null) {
-                            boolean stepChanged = false;
-                            
-                            if ("IN PROGRESS".equalsIgnoreCase(status)) {
-                                // Le SPS est en cours - pas de changement de statut pour le moment
-                                System.out.println("   SPS " + scheduledProcedureStepId + " en cours");
-                            } else if ("COMPLETED".equalsIgnoreCase(status) && !Boolean.TRUE.equals(procedureStep.getIsCompleted())) {
-                                // Marquer le SPS comme complété
-                                procedureStep.markAsCompleted("MPPS COMPLETED received");
-                                procedureStepRepo.save(procedureStep);
-                                stepChanged = true;
-                                System.out.println("   SPS " + scheduledProcedureStepId + " marqué comme complété");
-                                
-                                // Vérifier si TOUS les SPS requis sont complétés
-                                if (exam.getProcedure() != null) {
-                                    long requiredCount = procedureStepRepo.countRequiredStepsByProcedureId(exam.getProcedure().getId());
-                                    long completedCount = procedureStepRepo.countCompletedStepsByProcedureId(exam.getProcedure().getId());
-                                    
-                                    System.out.println("   Progression: " + completedCount + "/" + requiredCount + " SPS requis complétés");
-                                    
-                                    if (completedCount >= requiredCount && oldExamStatus != ExamStatus.COMPLETED) {
-                                        newExamStatus = ExamStatus.COMPLETED;
-                                        statusMessage = "Tous les steps sont terminés - Examen complété";
-                                        examStatusChanged = true;
-                                        System.out.println("   TOUS les SPS sont complétés -> Examen marqué COMPLETED");
-                                    } else if (oldExamStatus == ExamStatus.PLANNED) {
-                                        newExamStatus = ExamStatus.IN_PROGRESS;
-                                        statusMessage = "Examen en cours (certains steps complétés)";
-                                        examStatusChanged = true;
-                                        System.out.println("   Premier SPS complété -> Examen marqué IN_PROGRESS");
-                                    }
-                                }
-                            } else if ("DISCONTINUED".equalsIgnoreCase(status)) {
-                                // Gérer l'annulation du SPS
-                                procedureStep.markAsIncomplete();
-                                procedureStepRepo.save(procedureStep);
-                                stepChanged = true;
-                                System.out.println("   SPS " + scheduledProcedureStepId + " annulé");
-                            }
-                            
-                            // Envoyer une notification pour le SPS si changé
-                            if (stepChanged) {
-                                // TODO: Optionnel - envoyer notification spécifique au SPS
-                            }
-                        } else {
-                            System.err.println("   SPS introuvable pour ID: " + scheduledProcedureStepId);
-                        }
-                    } else {
-                        // Ancienne logique si pas de SPS ID (compatibilité)
-                        if ("IN PROGRESS".equalsIgnoreCase(status) && oldExamStatus != ExamStatus.IN_PROGRESS) {
-                            newExamStatus = ExamStatus.IN_PROGRESS;
-                            statusMessage = "L'examen est en cours d'acquisition";
-                            examStatusChanged = true;
-                        } else if ("COMPLETED".equalsIgnoreCase(status) && oldExamStatus != ExamStatus.COMPLETED) {
-                            newExamStatus = ExamStatus.COMPLETED;
-                            statusMessage = "L'examen est terminé";
-                            examStatusChanged = true;
-                        } else if ("DISCONTINUED".equalsIgnoreCase(status) && oldExamStatus != ExamStatus.CANCELLED) {
-                            newExamStatus = ExamStatus.CANCELLED;
-                            statusMessage = "L'examen a été annulé";
-                            examStatusChanged = true;
-                        }
-                    }
+            ExamStatus oldExamStatus = exam.getStatus();
 
-                    // 4. ENVOYER LE MESSAGE WEBSOCKET si le statut de l'examen a changé
-                    if (examStatusChanged && newExamStatus != null) {
-                        ExamStatusMessage wsMessage = new ExamStatusMessage(
-                                exam.getAccessionNumber(),
-                                exam.getPatient().getFirstName() + " " + exam.getPatient().getLastName(),
-                                exam.getModalityCode() != null ? exam.getModalityCode() : "UNKNOWN",
-                                oldExamStatus.toString(),
-                                newExamStatus.toString(),
-                                statusMessage
-                        );
+            // Résolution du step
+            ProcedureStep procedureStep = resolveProcedureStep(receivedSpsId, accessionNumber, exam);
 
-                        webSocketService.sendStatusUpdate(wsMessage);
-                        System.out.println("   Message WebSocket envoyé");
+            // ── Si on a trouvé un step et que son scheduled_procedure_step_id
+            //    est NULL, on le renseigne maintenant pour les prochains appels ──
+            if (procedureStep != null
+                    && (procedureStep.getScheduledProcedureStepId() == null
+                    || procedureStep.getScheduledProcedureStepId().isEmpty())
+                    && receivedSpsId != null) {
+                procedureStep.setScheduledProcedureStepId(receivedSpsId);
+                procedureStepRepo.save(procedureStep);
+                System.out.println("   -> scheduled_procedure_step_id renseigné : " + receivedSpsId);
+            }
 
-                        // 5. Mettre à jour le statut de l'examen dans la base
-                        exam.setStatus(newExamStatus);
-                        examRepo.save(exam);
-                        System.out.println("   Examen sauvegardé avec le statut: " + newExamStatus);
-                    }
-                } else {
-                    System.err.println("   Examen introuvable pour Accession: " + accessionNumber);
+            // Label d'affichage pour le step
+            String displaySpsId = (procedureStep != null && procedureStep.getScheduledProcedureStepId() != null)
+                    ? procedureStep.getScheduledProcedureStepId()
+                    : (receivedSpsId != null ? receivedSpsId : "Step-" + (procedureStep != null ? procedureStep.getId() : "?"));
+
+            if (procedureStep != null) {
+                handleStepUpdate(exam, procedureStep, displaySpsId, mppsStatus, oldExamStatus);
+            } else {
+                handleExamFallback(exam, mppsStatus, oldExamStatus, receivedSpsId);
+            }
+
+        } catch (Exception e) {
+            System.err.println("   -> Erreur traitement MPPS : " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        replySuccess(as, pc, dimse, cmd);
+    }
+
+    // =========================================================================
+    //  Logique de mise à jour
+    // =========================================================================
+
+    private void handleStepUpdate(Exam exam, ProcedureStep procedureStep, String displaySpsId,
+                                  String mppsStatus, ExamStatus oldExamStatus) {
+
+        String patientName = exam.getPatient().getFirstName() + " " + exam.getPatient().getLastName();
+        String modality    = exam.getModalityCode() != null ? exam.getModalityCode() : "UNKNOWN";
+
+        if ("IN PROGRESS".equalsIgnoreCase(mppsStatus)) {
+
+            System.out.println("   -> Step IN PROGRESS : " + displaySpsId);
+
+            ExamStatus newExamStatus = oldExamStatus;
+            if (isBeforeInProgress(oldExamStatus)) {
+                newExamStatus = ExamStatus.IN_PROGRESS;
+                exam.setStatus(newExamStatus);
+                examRepo.save(exam);
+                System.out.println("   -> Examen -> IN_PROGRESS (était " + oldExamStatus + ")");
+            }
+
+            webSocketService.sendStatusUpdate(new ExamStatusMessage(
+                    exam.getAccessionNumber(), patientName, modality,
+                    oldExamStatus.toString(), newExamStatus.toString(),
+                    "Step en cours d'acquisition : " + displaySpsId
+            ));
+
+        } else if ("COMPLETED".equalsIgnoreCase(mppsStatus)
+                && !Boolean.TRUE.equals(procedureStep.getIsCompleted())) {
+
+            procedureStep.markAsCompleted("MPPS COMPLETED received");
+            procedureStepRepo.save(procedureStep);
+            System.out.println("   -> Step COMPLETED : " + displaySpsId);
+
+            // ── Progression : compter uniquement les steps "actifs" (qui ont reçu un MPPS) ──
+            // On compte les steps dont scheduled_procedure_step_id est renseigné,
+            // car seuls ces steps participent au workflow MPPS de cette modalité.
+            // Les autres steps de la procédure peuvent être pour d'autres modalités.
+            long total     = 0;
+            long completed = 0;
+            if (exam.getProcedure() != null) {
+                Long procedureId = exam.getProcedure().getId();
+                // Compter les steps ayant un SPS ID assigné (participent au MPPS)
+                total     = procedureStepRepo.countByProcedureIdAndScheduledProcedureStepIdIsNotNull(procedureId);
+                completed = procedureStepRepo.countByProcedureIdAndIsCompletedTrue(procedureId);
+
+                // Fallback : si aucun step n'a de SPS ID, compter tous les steps
+                if (total == 0) {
+                    total = procedureStepRepo.countByProcedureId(procedureId);
                 }
-            } catch (Exception e) {
-                System.err.println("   Erreur lors du traitement MPPS : " + e.getMessage());
-                e.printStackTrace();
+            }
+            if (total == 0) total = 1;
+            System.out.println("   -> Progression : " + completed + "/" + total + " steps");
+
+            boolean allDone   = completed >= total;
+            ExamStatus newStatus = allDone ? ExamStatus.COMPLETED : ExamStatus.IN_PROGRESS;
+
+            String message = allDone
+                    ? "Tous les steps sont terminés (" + completed + "/" + total + ")"
+                    : "Step terminé : " + displaySpsId + " — Progression : " + completed + "/" + total;
+
+            webSocketService.sendStatusUpdate(new ExamStatusMessage(
+                    exam.getAccessionNumber(), patientName, modality,
+                    oldExamStatus.toString(), newStatus.toString(), message
+            ));
+
+            if (newStatus != oldExamStatus) {
+                exam.setStatus(newStatus);
+                examRepo.save(exam);
+                System.out.println("   -> Examen -> " + newStatus);
+            }
+
+        } else if ("DISCONTINUED".equalsIgnoreCase(mppsStatus)) {
+
+            procedureStep.markAsIncomplete();
+            procedureStepRepo.save(procedureStep);
+            System.out.println("   -> Step DISCONTINUED : " + displaySpsId);
+
+            if (oldExamStatus != ExamStatus.CANCELLED) {
+                exam.setStatus(ExamStatus.CANCELLED);
+                examRepo.save(exam);
+            }
+            webSocketService.sendStatusUpdate(new ExamStatusMessage(
+                    exam.getAccessionNumber(), patientName, modality,
+                    oldExamStatus.toString(), ExamStatus.CANCELLED.toString(),
+                    "Step annulé : " + displaySpsId
+            ));
+        }
+    }
+
+    private void handleExamFallback(Exam exam, String mppsStatus,
+                                    ExamStatus oldExamStatus, String spsId) {
+        String patientName = exam.getPatient().getFirstName() + " " + exam.getPatient().getLastName();
+        String modality    = exam.getModalityCode() != null ? exam.getModalityCode() : "UNKNOWN";
+        String label       = spsId != null ? spsId : "?";
+
+        ExamStatus newStatus = null;
+        String message = "";
+
+        if ("IN PROGRESS".equalsIgnoreCase(mppsStatus) && isBeforeInProgress(oldExamStatus)) {
+            newStatus = ExamStatus.IN_PROGRESS;
+            message   = "Step en cours : " + label;
+        } else if ("COMPLETED".equalsIgnoreCase(mppsStatus) && oldExamStatus != ExamStatus.COMPLETED) {
+            newStatus = ExamStatus.COMPLETED;
+            message   = "Examen terminé — step : " + label;
+        } else if ("DISCONTINUED".equalsIgnoreCase(mppsStatus) && oldExamStatus != ExamStatus.CANCELLED) {
+            newStatus = ExamStatus.CANCELLED;
+            message   = "Examen annulé — step : " + label;
+        }
+
+        if (newStatus != null) {
+            exam.setStatus(newStatus);
+            examRepo.save(exam);
+            webSocketService.sendStatusUpdate(new ExamStatusMessage(
+                    exam.getAccessionNumber(), patientName, modality,
+                    oldExamStatus.toString(), newStatus.toString(), message));
+        }
+    }
+
+    /** Retourne true si l'examen n'a pas encore commencé (avant IN_PROGRESS). */
+    private boolean isBeforeInProgress(ExamStatus status) {
+        String s = status.toString().toUpperCase();
+        return s.equals("PLANNED") || s.equals("SELECTED") || s.equals("SCHEDULED");
+    }
+
+    // =========================================================================
+    //  Résolution du ProcedureStep — 4 stratégies
+    // =========================================================================
+
+    private ProcedureStep resolveProcedureStep(String spsId, String accessionNumber, Exam exam) {
+
+        if (exam.getProcedure() == null) return null;
+        Long procedureId = exam.getProcedure().getId();
+
+        // Stratégie 1 : correspondance exacte sur scheduled_procedure_step_id
+        if (spsId != null && !spsId.isEmpty()) {
+            ProcedureStep step = procedureStepRepo.findByScheduledProcedureStepId(spsId);
+            if (step != null) {
+                System.out.println("   -> Step trouvé par ID exact : " + spsId);
+                return step;
             }
         }
 
-        // 7. Répondre "Succès" au robot
-        Attributes responseCmd;
-        if (dimse == Dimse.N_CREATE_RQ) {
-            responseCmd = Commands.mkNCreateRSP(cmd, Status.Success);
-        } else {
-            responseCmd = Commands.mkNSetRSP(cmd, Status.Success);
+        // Stratégie 2 : SPS ID contient l'accessionNumber (IDs type "SPS-ACC202602...")
+        if (spsId != null && accessionNumber != null && spsId.contains(accessionNumber)) {
+            System.out.println("   -> SPS ID contient AccessionNumber -> premier step non complété");
+            java.util.List<ProcedureStep> steps =
+                    procedureStepRepo.findByProcedureIdOrderByStepOrder(procedureId);
+            for (ProcedureStep s : steps) {
+                if (!Boolean.TRUE.equals(s.getIsCompleted())) {
+                    System.out.println("   -> Step non complété (id=" + s.getId() + ")");
+                    return s;
+                }
+            }
+            if (!steps.isEmpty()) return steps.get(steps.size() - 1);
         }
 
-        as.writeDimseRSP(pc, responseCmd, null);
+        // Stratégie 3 : petit numéro dans l'ID ("SPS-CT-001" -> position 1)
+        if (spsId != null) {
+            String shortNum = extractShortNumericId(spsId);
+            if (shortNum != null) {
+                try {
+                    int pos = Integer.parseInt(shortNum);
+                    java.util.List<ProcedureStep> steps =
+                            procedureStepRepo.findByProcedureIdOrderByStepOrder(procedureId);
+                    if (pos >= 1 && pos <= steps.size()) {
+                        System.out.println("   -> Step par position " + pos
+                                + " (id=" + steps.get(pos - 1).getId() + ")");
+                        return steps.get(pos - 1);
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+
+        // Stratégie 4 : premier step non complété (dernier recours)
+        java.util.List<ProcedureStep> steps =
+                procedureStepRepo.findByProcedureIdOrderByStepOrder(procedureId);
+        for (ProcedureStep s : steps) {
+            if (!Boolean.TRUE.equals(s.getIsCompleted())) {
+                System.out.println("   -> Dernier recours (id=" + s.getId() + ")");
+                return s;
+            }
+        }
+
+        return null;
+    }
+
+    private String extractShortNumericId(String complexId) {
+        if (complexId == null || complexId.isEmpty()) return null;
+        java.util.regex.Matcher m =
+                java.util.regex.Pattern.compile("\\d+").matcher(complexId);
+        while (m.find()) {
+            String num = m.group();
+            if (num.length() <= 9) return num.replaceFirst("^0+(?!$)", "");
+        }
+        return null;
+    }
+
+    private void replySuccess(Association as, PresentationContext pc,
+                              Dimse dimse, Attributes cmd) throws IOException {
+        Attributes rsp = dimse == Dimse.N_CREATE_RQ
+                ? Commands.mkNCreateRSP(cmd, Status.Success)
+                : Commands.mkNSetRSP(cmd, Status.Success);
+        as.writeDimseRSP(pc, rsp, null);
     }
 }

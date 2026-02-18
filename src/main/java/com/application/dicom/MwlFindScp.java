@@ -71,22 +71,29 @@ public class MwlFindScp extends BasicCFindSCP {
             int sentCount = 0;
             for (Exam exam : filteredExams) {
                 if (exam == null || exam.getPatient() == null) {
-                    System.out.println("   ⚠️  Examen ignoré (Données incomplètes)");
+                    System.out.println("   Examen ignoré (Données incomplètes)");
                     continue;
                 }
 
-                Attributes mwlItem = createMwlResponse(exam);
-                as.writeDimseRSP(pc, Commands.mkCFindRSP(cmd, Status.Pending), mwlItem);
-
-                sentCount++;
-                System.out.println("   ✅ Envoyé: " + exam.getPatient().getLastName() +
-                        " - " + exam.getModality() +
-                        " - " + requestedStationAET);
+                // Create separate MWL entries for each procedure step
+                List<Attributes> mwlItems = createMwlResponses(exam);
+                
+                for (Attributes mwlItem : mwlItems) {
+                    as.writeDimseRSP(pc, Commands.mkCFindRSP(cmd, Status.Pending), mwlItem);
+                    sentCount++;
+                    
+                    // Extract SPS info for logging
+                    String spsId = mwlItem.getNestedDataset(Tag.ScheduledProcedureStepSequence)
+                        .getString(Tag.ScheduledProcedureStepID);
+                    System.out.println("   Envoyé: " + exam.getPatient().getLastName() +
+                            " - " + exam.getModality() +
+                            " - SPS: " + spsId);
+                }
             }
 
             // 5. Fin de la transmission
             as.writeDimseRSP(pc, Commands.mkCFindRSP(cmd, Status.Success), null);
-            System.out.println("✅ C-FIND terminé: " + sentCount + " résultat(s) envoyé(s)");
+            System.out.println(" C-FIND terminé: " + sentCount + " résultat(s) envoyé(s)");
 
         } catch (Exception e) {
             System.err.println("❌ Erreur lors du traitement C-FIND: " + e.getMessage());
@@ -161,9 +168,44 @@ public class MwlFindScp extends BasicCFindSCP {
     }
 
     /**
-     * Crée la réponse MWL pour un examen
+     * Crée les réponses MWL pour un examen (une par SPS)
      */
-    private Attributes createMwlResponse(Exam exam) {
+    private List<Attributes> createMwlResponses(Exam exam) {
+        List<Attributes> mwlItems = new java.util.ArrayList<>();
+        
+        // Get procedure steps from exam
+        List<com.application.entity.ProcedureStep> procedureSteps = new java.util.ArrayList<>();
+        
+        if (exam.getProcedure() != null && exam.getProcedure().getProcedureSteps() != null && 
+            !exam.getProcedure().getProcedureSteps().isEmpty()) {
+            
+            // Use actual procedure steps from exam's procedure
+            for (com.application.entity.ProcedureStep step : exam.getProcedure().getProcedureSteps()) {
+                // Include step if it's required or not completed (active steps)
+                if (step.getIsRequired() != null && step.getIsRequired() || 
+                    step.getIsCompleted() == null || !step.getIsCompleted()) {
+                    procedureSteps.add(step);
+                }
+            }
+        } else {
+            // Create a single procedure step if no steps are defined
+            procedureSteps.add(null); // null indicates fallback
+        }
+        
+        // Create separate MWL entry for each procedure step
+        for (int i = 0; i < procedureSteps.size(); i++) {
+            com.application.entity.ProcedureStep step = procedureSteps.get(i);
+            Attributes mwlItem = createSingleMwlResponse(exam, step, i + 1);
+            mwlItems.add(mwlItem);
+        }
+        
+        return mwlItems;
+    }
+    
+    /**
+     * Crée une réponse MWL pour un examen et un SPS spécifique
+     */
+    private Attributes createSingleMwlResponse(Exam exam, com.application.entity.ProcedureStep step, int stepIndex) {
         Attributes mwlItem = new Attributes();
 
         // --- 1. Info Patient ---
@@ -197,39 +239,59 @@ public class MwlFindScp extends BasicCFindSCP {
         Attributes spsItem = new Attributes();
 
         // ID du SPS
-        spsItem.setString(Tag.ScheduledProcedureStepID, VR.SH, "SPS-" + exam.getId());
+        String spsId;
+        if (step != null) {
+            spsId = String.format("SPS-%s-%03d", exam.getModalityCode(), stepIndex);
+        } else {
+            spsId = "SPS-" + exam.getAccessionNumber();
+        }
+        spsItem.setString(Tag.ScheduledProcedureStepID, VR.SH, spsId);
 
         // MODALITÉ - CRUCIAL pour le filtrage
         spsItem.setString(Tag.Modality, VR.CS, exam.getModality());
 
-        // STATION AET - Utilise le AET de la modalité qui demande
-        // Si vous avez un champ dans la base, utilisez-le, sinon on met une valeur générique
-        spsItem.setString(Tag.ScheduledStationAETitle, VR.AE, "ANY-MODALITY");
+        // STATION AET - Utilise le AET de la modalité assignée
+        String stationAET = "ANY-MODALITY";
+        if (exam.getModalityEntity() != null && exam.getModalityEntity().getAetitle() != null) {
+            stationAET = exam.getModalityEntity().getAetitle();
+        }
+        spsItem.setString(Tag.ScheduledStationAETitle, VR.AE, stationAET);
 
-        // Date et heure
+        // Station Name
+        String stationName = exam.getModalityCode() + "_ROOM_1";
+        if (exam.getModalityEntity() != null && exam.getModalityEntity().getRoom() != null && 
+            exam.getModalityEntity().getRoom().getName() != null) {
+            stationName = exam.getModalityEntity().getRoom().getName();
+        }
+        spsItem.setString(Tag.ScheduledStationName, VR.SH, stationName);
+
+        // Date et heure - calculate based on step order and exam scheduled time
         if (exam.getScheduledDateTime() != null) {
+            java.time.LocalDateTime stepTime = exam.getScheduledDateTime().plusMinutes((stepIndex - 1) * 5);
             spsItem.setString(Tag.ScheduledProcedureStepStartDate, VR.DA,
-                    exam.getScheduledDateTime().format(daFormat));
+                    stepTime.format(daFormat));
             spsItem.setString(Tag.ScheduledProcedureStepStartTime, VR.TM,
-                    exam.getScheduledDateTime().format(tmFormat));
+                    stepTime.format(tmFormat));
         }
 
         // Description
-        String desc = "";
-        if (exam.getProcedure() != null) {
-            desc = exam.getProcedure().getName();
+        String description = "";
+        if (step != null && step.getDescription() != null) {
+            description = step.getDescription();
+        } else if (exam.getProcedure() != null && exam.getProcedure().getName() != null) {
+            description = exam.getProcedure().getName();
         }
         if (exam.getAdditionalInstructions() != null && !exam.getAdditionalInstructions().trim().isEmpty()) {
-            if (!desc.isEmpty()) {
-                desc += " - ";
+            if (!description.isEmpty()) {
+                description += " - ";
             }
-            desc += exam.getAdditionalInstructions();
+            description += exam.getAdditionalInstructions();
         }
-        if (desc.isEmpty()) {
-            desc = exam.getModalityCode() != null ? 
+        if (description.isEmpty()) {
+            description = exam.getModalityCode() != null ? 
                 exam.getModalityCode() + " Examination" : "Unknown Examination";
         }
-        spsItem.setString(Tag.ScheduledProcedureStepDescription, VR.LO, desc);
+        spsItem.setString(Tag.ScheduledProcedureStepDescription, VR.LO, description);
 
         // Médecin
         if (exam.getMedecin() != null) {
