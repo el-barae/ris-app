@@ -27,4 +27,20 @@ public interface ProcedureStepRepository extends JpaRepository<ProcedureStep, Lo
     long countRequiredStepsByProcedureId(@Param("procedureId") Long procedureId);
 
     ProcedureStep findByScheduledProcedureStepId(String scheduledProcedureStepId);
+
+
+
+
+    /** Tous les steps d'une procédure (is_required ignoré). */
+    long countByProcedureId(Long procedureId);
+
+    /** Steps complétés (is_completed = true). */
+    long countByProcedureIdAndIsCompletedTrue(Long procedureId);
+
+    /**
+     * Steps ayant reçu un MPPS — scheduled_procedure_step_id est renseigné.
+     * Ce sont les seuls steps qui participent au workflow MPPS actif.
+     * Évite de compter des steps d'autres modalités comme "manquants".
+     */
+    long countByProcedureIdAndScheduledProcedureStepIdIsNotNull(Long procedureId);
 }
