@@ -57,4 +57,17 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
     
     @Query("SELECT MAX(e.worklist) FROM Exam e WHERE e.worklist LIKE 'WL-%'")
     String findMaxWorklist();
+
+
+
+
+    @Query("SELECT e FROM Exam e " +
+            "LEFT JOIN FETCH e.procedure p " +
+            "LEFT JOIN FETCH p.procedureSteps " +
+            // --- AJOUTS POUR CORRIGER L'ERREUR ORDER/PATIENT ---
+            "LEFT JOIN FETCH e.order o " +
+            "LEFT JOIN FETCH o.patient pat " +
+            // ---------------------------------------------------
+            "WHERE e.id = :id")
+    Optional<Exam> findByIdWithProcedureDetails(@Param("id") Long id);
 }

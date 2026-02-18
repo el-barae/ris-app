@@ -4,6 +4,7 @@ import com.application.config.ApplicationProperties;
 import com.application.entity.*;
 import com.application.repository.ExamRepository;
 import com.application.repository.ReportRepository;
+import com.application.repository.UserRepository; // IMPORT AJOUTÉ
 import com.application.security.SecurityUtils;
 
 // --- IMPORTS PDF (OpenPDF) ---
@@ -18,9 +19,12 @@ import com.lowagie.text.pdf.PdfWriter;
 
 // --- IMPORTS VAADIN ---
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.details.Details;
+import com.vaadin.flow.component.details.DetailsVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -45,6 +49,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.RolesAllowed;
+import org.springframework.security.core.context.SecurityContextHolder; // IMPORT AJOUTÉ
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -65,6 +70,7 @@ public class ReportView extends VerticalLayout {
 
     private final ReportRepository reportRepository;
     private final ExamRepository examRepository;
+    private final UserRepository userRepository; // AJOUT DU REPOSITORY USER
 
     // UI Components
     private final Grid<Exam> grid = new Grid<>(Exam.class);
@@ -78,9 +84,14 @@ public class ReportView extends VerticalLayout {
     private User currentUser;
     private List<Exam> allExams = new ArrayList<>();
 
-    public ReportView(ExamRepository examRepository, ReportRepository reportRepository, ApplicationProperties applicationProperties) {
+    // MODIFICATION DU CONSTRUCTEUR POUR INJECTER UserRepository
+    public ReportView(ExamRepository examRepository,
+                      ReportRepository reportRepository,
+                      UserRepository userRepository,
+                      ApplicationProperties applicationProperties) {
         this.examRepository = examRepository;
         this.reportRepository = reportRepository;
+        this.userRepository = userRepository;
         this.ohifBaseUrl = applicationProperties.getOhifBaseUrl();
 
         setSizeFull();
@@ -97,7 +108,21 @@ public class ReportView extends VerticalLayout {
 
     @PostConstruct
     public void init() {
-        currentUser = SecurityUtils.getCurrentUser().orElse(null);
+        // Tentative d'initialisation au démarrage
+        getCurrentUserFromDB();
+    }
+
+    private User getCurrentUserFromDB() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+
+        // Vérification stricte : Auth existe ET n'est pas "anonymousUser"
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+            String username = auth.getName();
+            this.currentUser = userRepository.findByUsername(username).orElse(null);
+        } else {
+            this.currentUser = null;
+        }
+        return this.currentUser;
     }
 
     // =================================================================
@@ -123,7 +148,6 @@ public class ReportView extends VerticalLayout {
         logoIcon.setSize("28px");
         logoIcon.setColor("white");
 
-        // --- MODIFICATION 1 : CHANGEMENT DU TITRE ---
         H3 title = new H3("Liste des Examens et Rapports");
         title.getStyle().set("color", "white").set("margin", "0");
 
@@ -133,8 +157,10 @@ public class ReportView extends VerticalLayout {
         Span spacer = new Span();
         header.setFlexGrow(1, spacer);
 
-        if (currentUser != null) {
-            Avatar userAvatar = new Avatar(currentUser.getFirstName() + " " + currentUser.getLastName());
+        // On essaie de récupérer l'user pour l'avatar, mais ce n'est pas critique ici
+        User userForAvatar = getCurrentUserFromDB();
+        if (userForAvatar != null) {
+            Avatar userAvatar = new Avatar(userForAvatar.getFirstName() + " " + userForAvatar.getLastName());
             userAvatar.getStyle().set("background-color", "rgba(255,255,255,0.2)");
             userAvatar.setTooltipEnabled(true);
             header.add(titleLayout, spacer, userAvatar);
@@ -149,8 +175,6 @@ public class ReportView extends VerticalLayout {
         contentLayout.setSizeFull();
         contentLayout.setPadding(true);
         contentLayout.setSpacing(true);
-
-        // --- MODIFICATION 2 : LARGEUR MAXIMALE PASSÉE À 100% (PLEIN ÉCRAN) ---
         contentLayout.setMaxWidth("100%");
         contentLayout.getStyle().set("margin", "0 auto");
 
@@ -265,13 +289,26 @@ public class ReportView extends VerticalLayout {
             VerticalLayout layout = new VerticalLayout();
             layout.setPadding(false);
             layout.setSpacing(false);
+
             Span acc = new Span(exam.getAccessionNumber());
             acc.getStyle().set("font-family", "monospace").set("font-weight", "bold");
-            Span mod = new Span(exam.getModality());
-            mod.getElement().getThemeList().add("badge contrast");
-            layout.add(acc, mod);
+
+            HorizontalLayout procLayout = new HorizontalLayout();
+            procLayout.setAlignItems(Alignment.CENTER);
+            procLayout.setSpacing(true);
+
+            String procedureName = (exam.getProcedure() != null) ? exam.getProcedure().getName() : "Procédure standard";
+            Span procSpan = new Span(procedureName);
+            procSpan.getStyle().set("font-size", "0.9em");
+
+            Span modBadge = new Span(exam.getModality());
+            modBadge.getElement().getThemeList().add("badge contrast");
+
+            procLayout.add(modBadge, procSpan);
+
+            layout.add(acc, procLayout);
             return layout;
-        })).setHeader("Examen").setWidth("150px");
+        })).setHeader("Procédure / Examen").setWidth("250px");
 
         grid.addColumn(exam -> exam.getScheduledDateTime() != null ?
                         exam.getScheduledDateTime().format(DateTimeFormatter.ofPattern("dd/MM HH:mm")) : "-")
@@ -340,8 +377,12 @@ public class ReportView extends VerticalLayout {
             return "N/A";
         }).setHeader("Patient").setSortable(true);
 
-        reportsGrid.addColumn(report -> report.getExam() != null ? report.getExam().getModality() : "-")
-                .setHeader("Mod").setWidth("80px");
+        reportsGrid.addColumn(report -> {
+            if (report.getExam() != null && report.getExam().getProcedure() != null) {
+                return report.getExam().getProcedure().getName();
+            }
+            return report.getExam() != null ? report.getExam().getModality() : "-";
+        }).setHeader("Procédure").setWidth("180px");
 
         reportsGrid.addColumn(report -> {
             if (report.getAuthor() != null) {
@@ -359,7 +400,6 @@ public class ReportView extends VerticalLayout {
         reportsGrid.addColumn(new ComponentRenderer<>(report -> {
             HorizontalLayout actions = new HorizontalLayout();
 
-            // 1. Bouton PDF
             Button pdfBtn = new Button(VaadinIcon.DOWNLOAD.create());
             pdfBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
             pdfBtn.setTooltipText("Télécharger PDF");
@@ -368,13 +408,11 @@ public class ReportView extends VerticalLayout {
             downloadLink.add(pdfBtn);
             downloadLink.getElement().setAttribute("download", true);
 
-            // 2. Bouton Détails
             Button detailsBtn = new Button(VaadinIcon.EYE.create());
             detailsBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
             detailsBtn.setTooltipText("Voir détails");
             detailsBtn.addClickListener(e -> openReportDialog(report));
 
-            // 3. Bouton Viewer
             Button viewerBtn = new Button(VaadinIcon.EXPAND_SQUARE.create());
             viewerBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
             viewerBtn.setTooltipText("Revoir images");
@@ -389,7 +427,6 @@ public class ReportView extends VerticalLayout {
     // SECTION 4: ACTIONS, VIEWERS & PDF GENERATION
     // =================================================================
 
-    // --- PDF ---
     private StreamResource createPdfResource(Report report) {
         String filename = "Rapport_" + report.getExam().getAccessionNumber() + ".pdf";
         return new StreamResource(filename, () -> generatePdfContent(report));
@@ -430,6 +467,8 @@ public class ReportView extends VerticalLayout {
             PdfPCell cellExam = new PdfPCell();
             cellExam.setBorder(0);
             cellExam.addElement(new Paragraph("EXAMEN:", headerFont));
+            String procName = (report.getExam().getProcedure() != null) ? report.getExam().getProcedure().getName() : "Standard";
+            cellExam.addElement(new Paragraph("Procédure: " + procName, boldFont));
             cellExam.addElement(new Paragraph("Modalité: " + report.getExam().getModality(), normalFont));
             cellExam.addElement(new Paragraph("Date: " + report.getExam().getScheduledDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), normalFont));
             cellExam.addElement(new Paragraph("Accession: " + report.getExam().getAccessionNumber(), normalFont));
@@ -477,7 +516,6 @@ public class ReportView extends VerticalLayout {
         }
     }
 
-    // --- FULLSCREEN VIEWER ---
     private void openFullscreenViewer(Exam exam) {
         if (exam == null) {
             Notification.show("Examen invalide", 3000, Notification.Position.MIDDLE)
@@ -485,7 +523,6 @@ public class ReportView extends VerticalLayout {
             return;
         }
 
-        // Vérifier que le StudyInstanceUID existe
         if (exam.getStudyInstanceUID() == null || exam.getStudyInstanceUID().isEmpty()) {
             Notification.show("Aucune image DICOM disponible pour cet examen", 3000, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_WARNING);
@@ -506,39 +543,30 @@ public class ReportView extends VerticalLayout {
         content.setSpacing(false);
         content.getStyle().set("background-color", "#000000");
 
-        // Construire l'URL OHIF avec le StudyInstanceUID
         String studyUid = exam.getStudyInstanceUID();
-        String url = ohifBaseUrl + "/viewer?StudyInstanceUIDs=" + studyUid;
+        String url = ohifBaseUrl + "/ohif/viewer?StudyInstanceUIDs=" + studyUid;
 
         IFrame iframe = new IFrame(url);
         iframe.setSizeFull();
-        iframe.getStyle()
-                .set("border", "none")
-                .set("display", "block");
-        iframe.setAllow("fullscreen"); // Permettre le mode plein écran dans OHIF
+        iframe.getStyle().set("border", "none").set("display", "block");
+        iframe.setAllow("fullscreen");
 
-        // Bouton de fermeture
         Button closeBtn = new Button("Fermer le Viewer", VaadinIcon.CLOSE.create());
         closeBtn.addThemeVariants(ButtonVariant.LUMO_CONTRAST, ButtonVariant.LUMO_PRIMARY);
         closeBtn.addClickListener(e -> fullscreenDialog.close());
 
-        // Bouton optionnel: Ouvrir dans un nouvel onglet
         Button openInTabBtn = new Button("Ouvrir dans un nouvel onglet", VaadinIcon.EXTERNAL_LINK.create());
         openInTabBtn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         openInTabBtn.addClickListener(e -> {
             getUI().ifPresent(ui -> ui.getPage().open(url, "_blank"));
         });
 
-        // Barre d'outils
         HorizontalLayout topBar = new HorizontalLayout(openInTabBtn, closeBtn);
         topBar.setWidthFull();
         topBar.setPadding(true);
         topBar.setSpacing(true);
         topBar.setJustifyContentMode(JustifyContentMode.END);
-        topBar.getStyle()
-                .set("background-color", "#1e293b")
-                .set("border-bottom", "1px solid #334155")
-                .set("box-shadow", "0 2px 4px rgba(0, 0, 0, 0.1)");
+        topBar.getStyle().set("background-color", "#1e293b").set("border-bottom", "1px solid #334155").set("box-shadow", "0 2px 4px rgba(0, 0, 0, 0.1)");
         topBar.setHeight("60px");
         topBar.setAlignItems(Alignment.CENTER);
 
@@ -550,8 +578,12 @@ public class ReportView extends VerticalLayout {
     }
 
     // --- SPLIT EDITOR ---
-    private void openSplitViewDialog(Exam exam) {
-        if (exam == null) return;
+    private void openSplitViewDialog(Exam examFromGrid) {
+        if (examFromGrid == null) return;
+
+        // Recharge l'examen avec ses relations (fixe le problème de LazyInitialization pour ProcedureSteps et Order/Patient)
+        Exam exam = examRepository.findByIdWithProcedureDetails(examFromGrid.getId())
+                .orElse(examFromGrid);
 
         Dialog splitDialog = new Dialog();
         splitDialog.setWidth("98vw");
@@ -578,6 +610,11 @@ public class ReportView extends VerticalLayout {
         editorLayout.setPadding(true);
         editorLayout.getStyle().set("background-color", "#f9fafb");
 
+        if (exam.getProcedure() != null) {
+            Component procedureDetails = createProcedureDetailsComponent(exam.getProcedure());
+            editorLayout.add(procedureDetails);
+        }
+
         TextArea findings = new TextArea("Observations / Compte rendu");
         findings.setSizeFull();
         findings.setPlaceholder("Décrivez vos observations cliniques...");
@@ -597,32 +634,53 @@ public class ReportView extends VerticalLayout {
         saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         saveBtn.getStyle().set("box-shadow", "0 2px 4px rgba(0,0,0,0.1)");
 
+        // --- CORRECTION MAJEURE ICI : Récupération sûre de l'utilisateur ---
         saveBtn.addClickListener(e -> {
+            // 1. On récupère l'utilisateur FRAIS depuis la DB
+            User signingUser = getCurrentUserFromDB();
+
+            if (signingUser == null) {
+                Notification.show("Erreur CRITIQUE : Utilisateur non identifié. Veuillez vous reconnecter.",
+                        5000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
             Report report = exam.getReport();
             boolean isNew = (report == null);
             if (isNew) {
                 report = new Report();
                 report.setExam(exam);
-                if (currentUser != null) {
-                    report.setAuthor(currentUser);
-                    report.setRadiologue(currentUser);
-                }
+                report.setAuthor(signingUser);
+                report.setRadiologue(signingUser); // Ceci fixe l'erreur "radiologue_id cannot be null"
                 report.setCreatedAt(LocalDateTime.now());
                 exam.setReport(report);
+            } else {
+                // Optionnel : Mettre à jour le radiologue si le rapport change de main
+                if(report.getRadiologue() == null) {
+                    report.setRadiologue(signingUser);
+                }
             }
+
             report.setFindings(findings.getValue());
             report.setConclusion(conclusion.getValue());
             report.setUpdatedAt(LocalDateTime.now());
             report.setValidated(true);
             report.setValidatedAt(LocalDateTime.now());
             exam.setStatus(ExamStatus.COMPLETED);
-            reportRepository.save(report);
-            examRepository.save(exam);
 
-            splitDialog.close();
-            Notification.show("Rapport validé").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-            if (worklistContainer.isVisible()) refreshGrid();
-            if (historyContainer.isVisible()) refreshReportsGrid();
+            try {
+                reportRepository.save(report);
+                examRepository.save(exam);
+
+                splitDialog.close();
+                Notification.show("Rapport validé").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                if (worklistContainer.isVisible()) refreshGrid();
+                if (historyContainer.isVisible()) refreshReportsGrid();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                Notification.show("Erreur lors de la sauvegarde : " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
         });
 
         Button closeBtn = new Button("Fermer", e -> splitDialog.close());
@@ -646,7 +704,68 @@ public class ReportView extends VerticalLayout {
         splitDialog.open();
     }
 
-    // --- DETAILS DIALOG ---
+    private Component createProcedureDetailsComponent(Procedure procedure) {
+        VerticalLayout content = new VerticalLayout();
+        content.setPadding(false);
+        content.setSpacing(false);
+
+        HorizontalLayout metaInfo = new HorizontalLayout();
+        metaInfo.setSpacing(true);
+        metaInfo.add(new Span(new Text("Code: "), new Span(procedure.getProcedureCode())));
+        if (procedure.getRegion() != null) metaInfo.add(new Span(" | Région: " + procedure.getRegion()));
+        if (procedure.getLaterality() != null) metaInfo.add(new Span(" | Latéralité: " + procedure.getLaterality()));
+
+        content.add(metaInfo);
+
+        if (Boolean.TRUE.equals(procedure.getContrastRequired())) {
+            Span contrastBadge = new Span("Contraste: " + procedure.getContrastType());
+            contrastBadge.getElement().getThemeList().add("badge error");
+            content.add(contrastBadge);
+        }
+
+        if (procedure.getProcedureSteps() != null && !procedure.getProcedureSteps().isEmpty()) {
+            H5 stepsTitle = new H5("Étapes protocolaires :");
+            stepsTitle.getStyle().set("margin-top", "10px").set("margin-bottom", "5px");
+            content.add(stepsTitle);
+
+            VerticalLayout stepsList = new VerticalLayout();
+            stepsList.setPadding(false);
+            stepsList.setSpacing(false);
+
+            for (ProcedureStep step : procedure.getProcedureSteps()) {
+                HorizontalLayout stepRow = new HorizontalLayout();
+                stepRow.setAlignItems(Alignment.CENTER);
+
+                Icon statusIcon;
+                if (Boolean.TRUE.equals(step.getIsCompleted())) {
+                    statusIcon = VaadinIcon.CHECK_CIRCLE.create();
+                    statusIcon.setColor("green");
+                } else {
+                    statusIcon = VaadinIcon.CIRCLE_THIN.create();
+                    statusIcon.setColor("gray");
+                }
+                statusIcon.setSize("16px");
+
+                Span stepName = new Span(step.getName());
+                stepName.getStyle().set("font-size", "0.9em");
+
+                Span duration = new Span("(" + step.getEstimatedDurationMinutes() + " min)");
+                duration.getStyle().set("font-size", "0.8em").set("color", "gray");
+
+                stepRow.add(statusIcon, stepName, duration);
+                stepsList.add(stepRow);
+            }
+            content.add(stepsList);
+        }
+
+        Details details = new Details("Détails de la Procédure: " + procedure.getName(), content);
+        details.addThemeVariants(DetailsVariant.FILLED);
+        details.setOpened(false);
+        details.setWidthFull();
+
+        return details;
+    }
+
     private void openReportDialog(Report report) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Détails du rapport");
@@ -684,6 +803,12 @@ public class ReportView extends VerticalLayout {
 
         auditLayout.add(authorField, createdField, updatedField);
 
+        TextField procedureField = new TextField("Procédure Réalisée");
+        String procName = (report.getExam().getProcedure() != null) ? report.getExam().getProcedure().getName() : "Non spécifiée";
+        procedureField.setValue(procName);
+        procedureField.setReadOnly(true);
+        procedureField.setWidthFull();
+
         TextArea findingsDisplay = new TextArea("Observations");
         findingsDisplay.setValue(report.getFindings() != null ? report.getFindings() : "");
         findingsDisplay.setReadOnly(true);
@@ -697,7 +822,7 @@ public class ReportView extends VerticalLayout {
 
         Button closeBtn = new Button("Fermer", e -> dialog.close());
         closeBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        content.add(auditLayout, findingsDisplay, conclusionDisplay, closeBtn);
+        content.add(auditLayout, procedureField, findingsDisplay, conclusionDisplay, closeBtn);
         dialog.add(content);
         dialog.open();
     }
