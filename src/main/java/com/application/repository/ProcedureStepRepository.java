@@ -43,4 +43,12 @@ public interface ProcedureStepRepository extends JpaRepository<ProcedureStep, Lo
      * Évite de compter des steps d'autres modalités comme "manquants".
      */
     long countByProcedureIdAndScheduledProcedureStepIdIsNotNull(Long procedureId);
+
+    @Query("SELECT ps FROM ProcedureStep ps " +
+            "JOIN ps.procedure p " +
+            "JOIN Exam e ON e.procedure = p " +
+            "WHERE e.accessionNumber = :accessionNumber " +
+            "AND ps.isCompleted = false " +
+            "ORDER BY ps.stepOrder ASC")
+    List<ProcedureStep> findPendingStepsByAccessionNumber(@Param("accessionNumber") String accessionNumber);
 }

@@ -57,5 +57,8 @@
   "DicomScuTimeout": 10,
 
   "SaveJobs": true,
-  "JobsHistorySize": 10
+  "JobsHistorySize": 10,
+
+  "LuaScripts": ["/etc/orthanc/notify-ris.lua"]
+
 }

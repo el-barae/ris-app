@@ -24,6 +24,7 @@ services:
       - "4243:4242"  # Port DICOM
     volumes:
       - ./orthanc-central.json:/etc/orthanc/orthanc.json
+      - ./notify-ris.lua:/etc/orthanc/notify-ris.lua
       - orthanc-central-storage:/var/lib/orthanc/db
     restart: unless-stopped
     networks:

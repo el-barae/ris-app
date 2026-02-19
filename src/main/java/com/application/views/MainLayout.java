@@ -26,13 +26,18 @@ import jakarta.annotation.security.PermitAll;
 import com.vaadin.flow.spring.annotation.UIScope;
 import org.springframework.stereotype.Component;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.component.ClientCallable;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.application.entity.Exam;
+import com.application.repository.ExamRepository;
 
 @Component
 @UIScope
 @PermitAll
 public class MainLayout extends AppLayout implements BeforeEnterObserver {
+
+    @Autowired
+    private ExamRepository examRepository;
 
     public MainLayout() {
         setPrimarySection(Section.DRAWER);
@@ -321,11 +326,25 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
                 getUI().ifPresent(ui -> ui.getPage().reload());
             });
 
+            Button viewerButton = new Button("Voir dans le viewer", VaadinIcon.EXTERNAL_LINK.create());
+            viewerButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+            viewerButton.addClickListener(e -> {
+                dialog.close();
+                // Redirection vers le viewer OHIF avec l'accession number
+                String viewerUrl = "http://localhost/viewer?StudyInstanceUIDs=" + getStudyInstanceUID(accessionNumber);
+                getUI().ifPresent(ui -> ui.getPage().open(viewerUrl, "_blank"));
+            });
+
             Button closeButton = new Button("Fermer");
             closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
             closeButton.addClickListener(e -> dialog.close());
 
-            footer.add(closeButton, refreshButton);
+            // Ajouter le bouton viewer uniquement pour les messages de réception PACS
+            if ("Images reçues et enregistrées dans le PACS central".equals(message)) {
+                footer.add(closeButton, refreshButton, viewerButton);
+            } else {
+                footer.add(closeButton, refreshButton);
+            }
 
             // Assemblage
             dialog.add(header, content, footer);
@@ -611,6 +630,17 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         // Configurer le WebSocket uniquement si l'utilisateur est connecté et sur une page protégée
         if (SecurityUtils.isUserLoggedIn() && !event.getLocation().getPath().equals("/login")) {
             setupWebSocketListener();
+        }
+    }
+
+    private String getStudyInstanceUID(String accessionNumber) {
+        try {
+            return examRepository.findByAccessionNumber(accessionNumber)
+                    .map(Exam::getStudyInstanceUID)
+                    .orElse("");
+        } catch (Exception e) {
+            System.err.println("Erreur récupération StudyInstanceUID: " + e.getMessage());
+            return "";
         }
     }
 }
