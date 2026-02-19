@@ -129,14 +129,15 @@ public class MppsScp extends BasicMPPSSCP {
 
             System.out.println("   -> Step IN PROGRESS : " + displaySpsId);
 
-            ExamStatus newExamStatus = oldExamStatus;
-            if (isBeforeInProgress(oldExamStatus)) {
-                newExamStatus = ExamStatus.IN_PROGRESS;
+            // Toujours mettre à jour le statut de l'examen à IN_PROGRESS
+            ExamStatus newExamStatus = ExamStatus.IN_PROGRESS;
+            if (oldExamStatus != ExamStatus.IN_PROGRESS) {
                 exam.setStatus(newExamStatus);
                 examRepo.save(exam);
                 System.out.println("   -> Examen -> IN_PROGRESS (était " + oldExamStatus + ")");
             }
 
+            // Envoyer notification "step en cours"
             webSocketService.sendStatusUpdate(new ExamStatusMessage(
                     exam.getAccessionNumber(), patientName, modality,
                     oldExamStatus.toString(), newExamStatus.toString(),
@@ -146,46 +147,48 @@ public class MppsScp extends BasicMPPSSCP {
         } else if ("COMPLETED".equalsIgnoreCase(mppsStatus)
                 && !Boolean.TRUE.equals(procedureStep.getIsCompleted())) {
 
+            // Marquer le step comme complété
             procedureStep.markAsCompleted("MPPS COMPLETED received");
             procedureStepRepo.save(procedureStep);
             System.out.println("   -> Step COMPLETED : " + displaySpsId);
 
-            // ── Progression : compter uniquement les steps "actifs" (qui ont reçu un MPPS) ──
-            // On compte les steps dont scheduled_procedure_step_id est renseigné,
-            // car seuls ces steps participent au workflow MPPS de cette modalité.
-            // Les autres steps de la procédure peuvent être pour d'autres modalités.
-            long total     = 0;
-            long completed = 0;
+            // Envoyer notification "step complété"
+            webSocketService.sendStatusUpdate(new ExamStatusMessage(
+                    exam.getAccessionNumber(), patientName, modality,
+                    exam.getStatus().toString(), exam.getStatus().toString(),
+                    "Step complété : " + displaySpsId
+            ));
+
+            // Vérifier si tous les steps sont complétés pour mettre l'examen à COMPLETED
+            long totalSteps = 0;
+            long completedSteps = 0;
             if (exam.getProcedure() != null) {
                 Long procedureId = exam.getProcedure().getId();
                 // Compter les steps ayant un SPS ID assigné (participent au MPPS)
-                total     = procedureStepRepo.countByProcedureIdAndScheduledProcedureStepIdIsNotNull(procedureId);
-                completed = procedureStepRepo.countByProcedureIdAndIsCompletedTrue(procedureId);
+                totalSteps = procedureStepRepo.countByProcedureIdAndScheduledProcedureStepIdIsNotNull(procedureId);
+                completedSteps = procedureStepRepo.countByProcedureIdAndIsCompletedTrue(procedureId);
 
                 // Fallback : si aucun step n'a de SPS ID, compter tous les steps
-                if (total == 0) {
-                    total = procedureStepRepo.countByProcedureId(procedureId);
+                if (totalSteps == 0) {
+                    totalSteps = procedureStepRepo.countByProcedureId(procedureId);
+                    completedSteps = procedureStepRepo.countByProcedureIdAndIsCompletedTrue(procedureId);
                 }
             }
-            if (total == 0) total = 1;
-            System.out.println("   -> Progression : " + completed + "/" + total + " steps");
+            if (totalSteps == 0) totalSteps = 1;
+            System.out.println("   -> Progression : " + completedSteps + "/" + totalSteps + " steps");
 
-            boolean allDone   = completed >= total;
-            ExamStatus newStatus = allDone ? ExamStatus.COMPLETED : ExamStatus.IN_PROGRESS;
-
-            String message = allDone
-                    ? "Tous les steps sont terminés (" + completed + "/" + total + ")"
-                    : "Step terminé : " + displaySpsId + " — Progression : " + completed + "/" + total;
-
-            webSocketService.sendStatusUpdate(new ExamStatusMessage(
-                    exam.getAccessionNumber(), patientName, modality,
-                    oldExamStatus.toString(), newStatus.toString(), message
-            ));
-
-            if (newStatus != oldExamStatus) {
-                exam.setStatus(newStatus);
+            boolean allDone = completedSteps >= totalSteps;
+            if (allDone && exam.getStatus() != ExamStatus.COMPLETED) {
+                exam.setStatus(ExamStatus.COMPLETED);
                 examRepo.save(exam);
-                System.out.println("   -> Examen -> " + newStatus);
+                System.out.println("   -> Examen -> COMPLETED (tous les steps terminés)");
+
+                // Envoyer notification examen complété
+                webSocketService.sendStatusUpdate(new ExamStatusMessage(
+                        exam.getAccessionNumber(), patientName, modality,
+                        ExamStatus.IN_PROGRESS.toString(), ExamStatus.COMPLETED.toString(),
+                        "Examen terminé : tous les steps sont complétés (" + completedSteps + "/" + totalSteps + ")"
+                ));
             }
 
         } else if ("DISCONTINUED".equalsIgnoreCase(mppsStatus)) {
@@ -194,13 +197,13 @@ public class MppsScp extends BasicMPPSSCP {
             procedureStepRepo.save(procedureStep);
             System.out.println("   -> Step DISCONTINUED : " + displaySpsId);
 
-            if (oldExamStatus != ExamStatus.CANCELLED) {
+            if (exam.getStatus() != ExamStatus.CANCELLED) {
                 exam.setStatus(ExamStatus.CANCELLED);
                 examRepo.save(exam);
             }
             webSocketService.sendStatusUpdate(new ExamStatusMessage(
                     exam.getAccessionNumber(), patientName, modality,
-                    oldExamStatus.toString(), ExamStatus.CANCELLED.toString(),
+                    exam.getStatus().toString(), ExamStatus.CANCELLED.toString(),
                     "Step annulé : " + displaySpsId
             ));
         }

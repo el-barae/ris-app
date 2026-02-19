@@ -544,7 +544,7 @@ public class ReportView extends VerticalLayout {
         content.getStyle().set("background-color", "#000000");
 
         String studyUid = exam.getStudyInstanceUID();
-        String url = ohifBaseUrl + "/ohif/viewer?StudyInstanceUIDs=" + studyUid;
+        String url = ohifBaseUrl + "/viewer?StudyInstanceUIDs=" + studyUid;
 
         IFrame iframe = new IFrame(url);
         iframe.setSizeFull();
@@ -599,7 +599,7 @@ public class ReportView extends VerticalLayout {
         splitLayout.setSplitterPosition(60);
 
         String studyUid = exam.getStudyInstanceUID() != null ? exam.getStudyInstanceUID() : "1.2.840.10008.5.1.4.1.1.1." + exam.getId();
-        String url = ohifBaseUrl + "/ohif/viewer?StudyInstanceUIDs=" + studyUid;
+        String url = ohifBaseUrl + "/viewer?StudyInstanceUIDs=" + studyUid;
 
         IFrame iframe = new IFrame(url);
         iframe.setSizeFull();
